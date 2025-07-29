@@ -1,6 +1,24 @@
 import { neon } from "@neondatabase/serverless"
 
+// For local PostgreSQL, you can also use node-postgres (pg) instead of neon
+// Uncomment the following lines if you prefer to use pg:
+// import { Pool } from 'pg'
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL
+// })
+
 const sql = neon(process.env.DATABASE_URL!)
+
+// If using pg instead of neon, replace sql calls with:
+// const query = async (text: string, params?: any[]) => {
+//   const client = await pool.connect()
+//   try {
+//     const result = await client.query(text, params)
+//     return result.rows
+//   } finally {
+//     client.release()
+//   }
+// }
 
 // Interfaces
 export interface Lembaga {
