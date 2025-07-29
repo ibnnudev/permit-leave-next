@@ -1,3 +1,4 @@
+import { PrismaClient } from "@/generated/prisma";
 import mysql from "mysql2/promise";
 
 const dbConfig = {
@@ -220,19 +221,6 @@ export async function getLeaveStats() {
 
 export async function getAllEmployees() {
   const sql = `SELECT id, name, email, department, created_at FROM users WHERE role = "employee" ORDER BY created_at DESC`;
-  return await query(sql);
-}
-
-export async function getAllEmployeesWithQuota() {
-  const sql = `
-        SELECT u.id, u.name, u.email, u.department, u.created_at, 
-                     kc.total_quota, kc.used_quota,
-                     kc.annual_leave_days, kc.sick_leave_days
-        FROM users u
-        LEFT JOIN kuota_cuti kc ON u.id = kc.user_id AND kc.year = YEAR(CURDATE())
-        WHERE u.role = "employee"
-        ORDER BY u.created_at DESC
-    `;
   return await query(sql);
 }
 

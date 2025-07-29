@@ -1,12 +1,16 @@
-import { NextResponse } from "next/server"
-import { getLeaveTypes } from "@/lib/db"
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@/generated/prisma";
 
+const prisma = new PrismaClient();
 export async function GET() {
   try {
-    const leaveTypes = await getLeaveTypes()
-    return NextResponse.json(leaveTypes)
+    const leaveTypes = await prisma.jenisCuti.findMany();
+    return NextResponse.json(leaveTypes);
   } catch (error) {
-    console.error("Error fetching leave types:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching leave types:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

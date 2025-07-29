@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model JenisCuti {
+  id            Int            @id @default(autoincrement())
+  nama          String         @db.VarChar(255)
+  max_days      Int
+  description   String?        @db.Text
+  created_at    DateTime       @default(now()) @db.Timestamp(0)
+  leaveRequests LeaveRequest[]
+
+  @@map("jenis_cuti")
+}
+
+model KuotaCuti {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  year        Int
+  total_quota Int      @default(12)
+  used_quota  Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "kuota_cuti_ibfk_1")
+
+  @@unique([user_id, year], map: "unique_user_year")
+  @@map("kuota_cuti")
+}
+
+model LeaveRequest {
+  id            Int           @id @default(autoincrement())
+  user_id       Int
+  jenis_cuti_id Int
+  start_date    DateTime      @db.Date
+  end_date      DateTime      @db.Date
+  total_days    Int
+  reason        String        @db.Text
+  status        Status?       @default(pending)
+  reviewed_by   Int?
+  review_notes  String?       @db.Text
+  reviewed_at   DateTime?     @db.Timestamp(0)
+  created_at    DateTime      @default(now()) @db.Timestamp(0)
+  updated_at    DateTime      @default(now()) @updatedAt @db.Timestamp(0)
+  user          User          @relation("LeaveUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "leave_requests_ibfk_1")
+  jenisCuti     JenisCuti     @relation(fields: [jenis_cuti_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "leave_requests_ibfk_2")
+  reviewer      User?         @relation("LeaveReviewer", fields: [reviewed_by], references: [id], onUpdate: Restrict, map: "leave_requests_ibfk_3")
+  ApprovalLog   ApprovalLog[]
+
+  @@index([jenis_cuti_id], map: "jenis_cuti_id")
+  @@index([reviewed_by], map: "reviewed_by")
+  @@index([user_id], map: "user_id")
+  @@map("leave_requests")
+}
+
+model User {
+  id                    Int            @id @default(autoincrement())
+  name                  String         @db.VarChar(255)
+  email                 String         @unique(map: "email") @db.VarChar(255)
+  password              String         @db.VarChar(255)
+  role                  Role?          @default(employee)
+  department            String?        @db.VarChar(255)
+  created_at            DateTime       @default(now()) @db.Timestamp(0)
+  updated_at            DateTime       @default(now()) @updatedAt @db.Timestamp(0)
+  kuotaCuti             KuotaCuti[]
+  leaveRequestsSent     LeaveRequest[] @relation("LeaveUser")
+  leaveRequestsReviewed LeaveRequest[] @relation("LeaveReviewer")
+  ApprovalLog           ApprovalLog[]
+
+  @@map("users")
+}
+
+model ApprovalLog {
+  id               Int            @id @default(autoincrement())
+  leave_request_id Int
+  approver_id      Int
+  level            Int
+  status           ApprovalStatus @default(pending)
+  reviewed_at      DateTime?
+
+  leaveRequest LeaveRequest @relation(fields: [leave_request_id], references: [id], onDelete: Cascade)
+  approver     User         @relation(fields: [approver_id], references: [id], onDelete: Cascade)
+
+  @@map("approval_log")
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum Role {
+  superadmin
+  admin
+  employee
+}
+
+enum Status {
+  pending
+  approved
+  rejected
+}
