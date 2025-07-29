@@ -6,19 +6,19 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Employee Leave Management System",
-  description: "A comprehensive leave management system for employees and administrators",
+    title: "Employee Leave Management System",
+    description: "A comprehensive leave management system for employees and administrators",
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode
 }) {
-  return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
-    </html>
-  )
+    return (
+        <html lang="en">
+            <body className={inter.className}>{children}</body>
+        </html>
+    )
 }

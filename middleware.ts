@@ -1,55 +1,59 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { decrypt } from "@/lib/auth"
+import { type NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/lib/auth";
 
-// Define protected routes
-const protectedRoutes = ["/dashboard", "/admin", "/leave-requests", "/cuti"]
-const adminRoutes = ["/admin"]
-const publicRoutes = ["/login", "/"]
+// Routes
+const protectedRoutes = ["/dashboard", "/admin", "/leave-requests", "/cuti"];
+const adminRoutes = ["/admin"];
+const publicRoutes = ["/login", "/"];
 
 export default async function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname
-  const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
-  const isAdminRoute = adminRoutes.some((route) => path.startsWith(route))
-  const isPublicRoute = publicRoutes.includes(path)
+  const { pathname } = req.nextUrl;
 
-  // Get the session from the cookie
-  const cookie = req.cookies.get("session")?.value
-  const session = await decrypt(cookie)
+  const isProtected = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isAdmin = adminRoutes.some((route) => pathname.startsWith(route));
+  const isPublic = publicRoutes.includes(pathname);
 
-  // Redirect to login if accessing protected route without session
-  if (isProtectedRoute && !session) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl))
+  const cookie = req.cookies.get("session")?.value;
+  const session = cookie ? await decrypt(cookie) : null;
+
+  // Unauthenticated access to protected route
+  if (isProtected && !session) {
+    return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Redirect to dashboard if accessing login with valid session
-  if (path === "/login" && session) {
-    const user = session.user
-    if (user.role === "superadmin" || user.role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl))
+  // Authenticated user accessing /login
+  if (pathname === "/login" && session) {
+    const role = session.user?.role;
+    const redirectPath =
+      role === "admin" || role === "superadmin"
+        ? "/admin/dashboard"
+        : "/dashboard";
+    return NextResponse.redirect(new URL(redirectPath, req.nextUrl));
+  }
+
+  // Prevent non-admin users from accessing admin routes
+  if (isAdmin && session) {
+    const role = session.user?.role;
+    if (role !== "admin" && role !== "superadmin") {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
   }
 
-  // Check admin access
-  if (isAdminRoute && session) {
-    const user = session.user
-    if (user.role !== "superadmin" && user.role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
-    }
+  // Authenticated access to "/" → redirect to proper dashboard
+  if (pathname === "/" && session) {
+    const role = session.user?.role;
+    const redirectPath =
+      role === "admin" || role === "superadmin"
+        ? "/admin/dashboard"
+        : "/dashboard";
+    return NextResponse.redirect(new URL(redirectPath, req.nextUrl));
   }
 
-  // Redirect root to appropriate dashboard
-  if (path === "/" && session) {
-    const user = session.user
-    if (user.role === "superadmin" || user.role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl))
-    }
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
-  }
-
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
-}
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.\\w+$).*)"],
+};

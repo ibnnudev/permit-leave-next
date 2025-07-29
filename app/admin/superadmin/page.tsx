@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth"
+import { requeireSuperadmin } from "@/lib/auth"
 import { getLeaveStats, getLeaveRequests, getAllEmployees } from "@/lib/db"
 import { Navbar } from "@/components/layout/navbar"
 import { StatsCard } from "@/components/ui/stats-card"
@@ -9,8 +9,7 @@ import { Users, Clock, CheckCircle, XCircle, Calendar } from "lucide-react"
 import Link from "next/link"
 
 export default async function AdminDashboard() {
-    const user = await requireRole(["admin", "superadmin"]);
-
+    const user = await requeireSuperadmin()
 
     const [stats, recentRequests, employees] = await Promise.all([getLeaveStats(), getLeaveRequests(), getAllEmployees()])
 
