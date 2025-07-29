@@ -1,38 +1,56 @@
-const { Pool } = require("pg")
+const mysql = require("mysql2/promise")
 
 // Load environment variables
 require("dotenv").config({ path: ".env.local" })
 
 async function resetDatabase() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  })
+  let connection
 
   try {
+    console.log("🔄 Connecting to MySQL...")
+
+    connection = await mysql.createConnection({
+      host: process.env.DB_HOST || "localhost",
+      port: Number.parseInt(process.env.DB_PORT || "3306"),
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "employee_leave_db",
+    })
+
+    console.log("✅ Connected to MySQL database")
+
     console.log("🔄 Resetting database...")
 
     // Drop all tables in correct order (reverse of creation)
     const dropTablesSQL = `
-      DROP TABLE IF EXISTS notifications CASCADE;
-      DROP TABLE IF EXISTS cuti_approval_log CASCADE;
-      DROP TABLE IF EXISTS cuti_approval_flow CASCADE;
-      DROP TABLE IF EXISTS cuti_kuota CASCADE;
-      DROP TABLE IF EXISTS cuti CASCADE;
-      DROP TABLE IF EXISTS jenis_cuti CASCADE;
-      DROP TABLE IF EXISTS users CASCADE;
-      DROP TABLE IF EXISTS lembaga CASCADE;
+      DROP TABLE IF EXISTS notifications;
+      DROP TABLE IF EXISTS cuti_approval_log;
+      DROP TABLE IF EXISTS cuti_approval_flow;
+      DROP TABLE IF EXISTS cuti_kuota;
+      DROP TABLE IF EXISTS cuti;
+      DROP TABLE IF EXISTS jenis_cuti;
+      DROP TABLE IF EXISTS users;
+      DROP TABLE IF EXISTS lembaga;
     `
 
-    await pool.query(dropTablesSQL)
-    console.log("✅ All tables dropped successfully")
+    const commands = dropTablesSQL.split(";").filter((cmd) => cmd.trim().length > 0)
 
+    for (const command of commands) {
+      if (command.trim()) {
+        await connection.execute(command)
+      }
+    }
+
+    console.log("✅ All tables dropped successfully")
     console.log("🎉 Database reset completed!")
     console.log('💡 Run "npm run db:setup" to recreate tables and seed data')
   } catch (error) {
     console.error("❌ Error resetting database:", error)
     process.exit(1)
   } finally {
-    await pool.end()
+    if (connection) {
+      await connection.end()
+    }
   }
 }
 

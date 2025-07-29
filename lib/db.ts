@@ -1,46 +1,39 @@
-import { Pool } from "pg"
+import mysql from "mysql2/promise"
 
-// Create a connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+// Create MySQL connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  port: Number.parseInt(process.env.DB_PORT || "3306"),
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "employee_leave_db",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
 })
 
-// Test the connection
-pool.on("connect", () => {
-  console.log("✅ Connected to PostgreSQL database")
-})
-
-pool.on("error", (err) => {
-  console.error("❌ Unexpected error on idle client", err)
-  process.exit(-1)
-})
+// Test connection
+pool
+  .getConnection()
+  .then((connection) => {
+    console.log("✅ Connected to MySQL database")
+    connection.release()
+  })
+  .catch((error) => {
+    console.error("❌ MySQL connection failed:", error)
+  })
 
 // Helper function to execute queries
-export async function query(text: string, params?: any[]) {
-  const start = Date.now()
+export async function query(sql: string, params?: any[]) {
   try {
-    const res = await pool.query(text, params)
-    const duration = Date.now() - start
-    console.log("📊 Executed query", { text, duration, rows: res.rowCount })
-    return res
+    const [results] = await pool.execute(sql, params)
+    return results
   } catch (error) {
     console.error("❌ Database query error:", error)
     throw error
   }
-}
-
-// Helper function to get a client from the pool
-export async function getClient() {
-  return await pool.connect()
-}
-
-// Helper function to end the pool (for graceful shutdown)
-export async function end() {
-  await pool.end()
 }
 
 // Interfaces
@@ -147,44 +140,57 @@ export interface Notification {
 
 // User functions
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT u.*, l.nama as lembaga_nama 
     FROM users u 
     LEFT JOIN lembaga l ON u.lembaga_id = l.id 
-    WHERE u.email = ${email}
-  `
-  return result.rows[0] || null
+    WHERE u.email = ?
+  `,
+    [email],
+  )) as User[]
+
+  return results[0] || null
 }
 
 export async function getUserById(id: number): Promise<User | null> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT u.*, l.nama as lembaga_nama 
     FROM users u 
     LEFT JOIN lembaga l ON u.lembaga_id = l.id 
-    WHERE u.id = ${id}
-  `
-  return result.rows[0] || null
+    WHERE u.id = ?
+  `,
+    [id],
+  )) as User[]
+
+  return results[0] || null
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const result = await query`
+  const results = (await query(`
     SELECT u.*, l.nama as lembaga_nama 
     FROM users u 
     LEFT JOIN lembaga l ON u.lembaga_id = l.id 
     ORDER BY u.nama
-  `
-  return result.rows as User[]
+  `)) as User[]
+
+  return results
 }
 
 export async function getUsersByLembaga(lembagaId: number): Promise<User[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT u.*, l.nama as lembaga_nama 
     FROM users u 
     LEFT JOIN lembaga l ON u.lembaga_id = l.id 
-    WHERE u.lembaga_id = ${lembagaId}
+    WHERE u.lembaga_id = ?
     ORDER BY u.nama
-  `
-  return result.rows as User[]
+  `,
+    [lembagaId],
+  )) as User[]
+
+  return results
 }
 
 export async function createUser(userData: {
@@ -196,23 +202,35 @@ export async function createUser(userData: {
   jabatan?: string
   tanggal_masuk?: string
 }): Promise<User> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO users (lembaga_id, nama, email, password, role, jabatan, tanggal_masuk)
-    VALUES (${userData.lembaga_id || null}, ${userData.nama}, ${userData.email}, ${userData.password}, ${userData.role}, ${userData.jabatan || null}, ${userData.tanggal_masuk || null})
-    RETURNING *
-  `
-  return result.rows[0] as User
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `,
+    [
+      userData.lembaga_id || null,
+      userData.nama,
+      userData.email,
+      userData.password,
+      userData.role,
+      userData.jabatan || null,
+      userData.tanggal_masuk || null,
+    ],
+  )) as any
+
+  // Get the created user
+  return await getUserById(result.insertId)
 }
 
 // Lembaga functions
 export async function getAllLembaga(): Promise<Lembaga[]> {
-  const result = await query`SELECT * FROM lembaga ORDER BY nama`
-  return result.rows as Lembaga[]
+  const results = (await query(`SELECT * FROM lembaga ORDER BY nama`)) as Lembaga[]
+  return results
 }
 
 export async function getLembagaById(id: number): Promise<Lembaga | null> {
-  const result = await query`SELECT * FROM lembaga WHERE id = ${id}`
-  return result.rows[0] || null
+  const results = (await query(`SELECT * FROM lembaga WHERE id = ?`, [id])) as Lembaga[]
+  return results[0] || null
 }
 
 export async function createLembaga(data: {
@@ -220,23 +238,26 @@ export async function createLembaga(data: {
   alamat?: string
   telepon?: string
 }): Promise<Lembaga> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO lembaga (nama, alamat, telepon)
-    VALUES (${data.nama}, ${data.alamat || null}, ${data.telepon || null})
-    RETURNING *
-  `
-  return result.rows[0] as Lembaga
+    VALUES (?, ?, ?)
+  `,
+    [data.nama, data.alamat || null, data.telepon || null],
+  )) as any
+
+  return await getLembagaById(result.insertId)
 }
 
 // Jenis Cuti functions
 export async function getAllJenisCuti(): Promise<JenisCuti[]> {
-  const result = await query`SELECT * FROM jenis_cuti ORDER BY nama_izin`
-  return result.rows as JenisCuti[]
+  const results = (await query(`SELECT * FROM jenis_cuti ORDER BY nama_izin`)) as JenisCuti[]
+  return results
 }
 
 export async function getJenisCutiById(id: number): Promise<JenisCuti | null> {
-  const result = await query`SELECT * FROM jenis_cuti WHERE id = ${id}`
-  return result.rows[0] || null
+  const results = (await query(`SELECT * FROM jenis_cuti WHERE id = ?`, [id])) as JenisCuti[]
+  return results[0] || null
 }
 
 export async function createJenisCuti(data: {
@@ -246,62 +267,80 @@ export async function createJenisCuti(data: {
   perlu_dokumen: boolean
   approval_berjenjang: boolean
 }): Promise<JenisCuti> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO jenis_cuti (nama_izin, maksimal_hari_per_tahun, keterangan, perlu_dokumen, approval_berjenjang)
-    VALUES (${data.nama_izin}, ${data.maksimal_hari_per_tahun}, ${data.keterangan || null}, ${data.perlu_dokumen}, ${data.approval_berjenjang})
-    RETURNING *
-  `
-  return result.rows[0] as JenisCuti
+    VALUES (?, ?, ?, ?, ?)
+  `,
+    [
+      data.nama_izin,
+      data.maksimal_hari_per_tahun,
+      data.keterangan || null,
+      data.perlu_dokumen,
+      data.approval_berjenjang,
+    ],
+  )) as any
+
+  return await getJenisCutiById(result.insertId)
 }
 
 // Cuti functions
 export async function getCutiByUserId(userId: number): Promise<Cuti[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT c.*, 
            u.nama as user_nama,
            jc.nama_izin as jenis_cuti_nama,
            l.nama as lembaga_nama,
-           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+           DATEDIFF(c.tanggal_selesai, c.tanggal_mulai) + 1 as days_requested
     FROM cuti c
     JOIN users u ON c.user_id = u.id
     JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
     LEFT JOIN lembaga l ON u.lembaga_id = l.id
-    WHERE c.user_id = ${userId}
+    WHERE c.user_id = ?
     ORDER BY c.created_at DESC
-  `
-  return result.rows as Cuti[]
+  `,
+    [userId],
+  )) as Cuti[]
+
+  return results
 }
 
 export async function getAllCuti(): Promise<Cuti[]> {
-  const result = await query`
+  const results = (await query(`
     SELECT c.*, 
            u.nama as user_nama,
            jc.nama_izin as jenis_cuti_nama,
            l.nama as lembaga_nama,
-           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+           DATEDIFF(c.tanggal_selesai, c.tanggal_mulai) + 1 as days_requested
     FROM cuti c
     JOIN users u ON c.user_id = u.id
     JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
     LEFT JOIN lembaga l ON u.lembaga_id = l.id
     ORDER BY c.created_at DESC
-  `
-  return result.rows as Cuti[]
+  `)) as Cuti[]
+
+  return results
 }
 
 export async function getCutiById(id: number): Promise<Cuti | null> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT c.*, 
            u.nama as user_nama,
            jc.nama_izin as jenis_cuti_nama,
            l.nama as lembaga_nama,
-           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+           DATEDIFF(c.tanggal_selesai, c.tanggal_mulai) + 1 as days_requested
     FROM cuti c
     JOIN users u ON c.user_id = u.id
     JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
     LEFT JOIN lembaga l ON u.lembaga_id = l.id
-    WHERE c.id = ${id}
-  `
-  return result.rows[0] || null
+    WHERE c.id = ?
+  `,
+    [id],
+  )) as Cuti[]
+
+  return results[0] || null
 }
 
 export async function createCuti(data: {
@@ -312,12 +351,15 @@ export async function createCuti(data: {
   alasan: string
   dokumen?: string
 }): Promise<Cuti> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO cuti (user_id, jenis_cuti_id, tanggal_mulai, tanggal_selesai, alasan, dokumen)
-    VALUES (${data.user_id}, ${data.jenis_cuti_id}, ${data.tanggal_mulai}, ${data.tanggal_selesai}, ${data.alasan}, ${data.dokumen || null})
-    RETURNING *
-  `
-  return result.rows[0] as Cuti
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    [data.user_id, data.jenis_cuti_id, data.tanggal_mulai, data.tanggal_selesai, data.alasan, data.dokumen || null],
+  )) as any
+
+  return await getCutiById(result.insertId)
 }
 
 export async function updateCutiStatus(
@@ -326,16 +368,19 @@ export async function updateCutiStatus(
   catatan_admin?: string,
   disetujui_oleh?: number,
 ): Promise<Cuti> {
-  const result = await query`
+  await query(
+    `
     UPDATE cuti 
-    SET status = ${status}, 
-        catatan_admin = ${catatan_admin || null},
-        disetujui_oleh = ${disetujui_oleh || null},
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${id}
-    RETURNING *
-  `
-  return result.rows[0] as Cuti
+    SET status = ?, 
+        catatan_admin = ?,
+        disetujui_oleh = ?,
+        updated_at = NOW()
+    WHERE id = ?
+  `,
+    [status, catatan_admin || null, disetujui_oleh || null, id],
+  )
+
+  return await getCutiById(id)
 }
 
 // Kuota functions
@@ -343,14 +388,18 @@ export async function getCutiKuotaByUser(
   userId: number,
   tahun: number = new Date().getFullYear(),
 ): Promise<CutiKuota[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT ck.*, jc.nama_izin as jenis_cuti_nama
     FROM cuti_kuota ck
     JOIN jenis_cuti jc ON ck.jenis_cuti_id = jc.id
-    WHERE ck.user_id = ${userId} AND ck.tahun = ${tahun}
+    WHERE ck.user_id = ? AND ck.tahun = ?
     ORDER BY jc.nama_izin
-  `
-  return result.rows as CutiKuota[]
+  `,
+    [userId, tahun],
+  )) as CutiKuota[]
+
+  return results
 }
 
 export async function updateCutiKuota(
@@ -359,16 +408,20 @@ export async function updateCutiKuota(
   tahun: number,
   jatahTerpakai: number,
 ): Promise<void> {
-  await query`
+  await query(
+    `
     UPDATE cuti_kuota 
-    SET jatah_terpakai = jatah_terpakai + ${jatahTerpakai}
-    WHERE user_id = ${userId} AND jenis_cuti_id = ${jenisCutiId} AND tahun = ${tahun}
-  `
+    SET jatah_terpakai = jatah_terpakai + ?
+    WHERE user_id = ? AND jenis_cuti_id = ? AND tahun = ?
+  `,
+    [jatahTerpakai, userId, jenisCutiId, tahun],
+  )
 }
 
 // Approval Flow functions
 export async function getApprovalFlow(lembagaId: number, jenisCutiId: number): Promise<CutiApprovalFlow[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT caf.*, 
            u.nama as approver_nama,
            jc.nama_izin as jenis_cuti_nama,
@@ -377,14 +430,17 @@ export async function getApprovalFlow(lembagaId: number, jenisCutiId: number): P
     JOIN users u ON caf.approver_id = u.id
     JOIN jenis_cuti jc ON caf.jenis_cuti_id = jc.id
     JOIN lembaga l ON caf.lembaga_id = l.id
-    WHERE caf.lembaga_id = ${lembagaId} AND caf.jenis_cuti_id = ${jenisCutiId}
+    WHERE caf.lembaga_id = ? AND caf.jenis_cuti_id = ?
     ORDER BY caf.level
-  `
-  return result.rows as CutiApprovalFlow[]
+  `,
+    [lembagaId, jenisCutiId],
+  )) as CutiApprovalFlow[]
+
+  return results
 }
 
 export async function getAllApprovalFlows(): Promise<CutiApprovalFlow[]> {
-  const result = await query`
+  const results = (await query(`
     SELECT caf.*, 
            u.nama as approver_nama,
            jc.nama_izin as jenis_cuti_nama,
@@ -394,8 +450,9 @@ export async function getAllApprovalFlows(): Promise<CutiApprovalFlow[]> {
     JOIN jenis_cuti jc ON caf.jenis_cuti_id = jc.id
     JOIN lembaga l ON caf.lembaga_id = l.id
     ORDER BY caf.lembaga_id, caf.jenis_cuti_id, caf.level
-  `
-  return result.rows as CutiApprovalFlow[]
+  `)) as CutiApprovalFlow[]
+
+  return results
 }
 
 export async function createApprovalFlow(data: {
@@ -406,12 +463,30 @@ export async function createApprovalFlow(data: {
   batas_waktu_approval: number
   dibuat_oleh: number
 }): Promise<CutiApprovalFlow> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO cuti_approval_flow (lembaga_id, jenis_cuti_id, level, approver_id, batas_waktu_approval, dibuat_oleh)
-    VALUES (${data.lembaga_id}, ${data.jenis_cuti_id}, ${data.level}, ${data.approver_id}, ${data.batas_waktu_approval}, ${data.dibuat_oleh})
-    RETURNING *
-  `
-  return result.rows[0] as CutiApprovalFlow
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    [data.lembaga_id, data.jenis_cuti_id, data.level, data.approver_id, data.batas_waktu_approval, data.dibuat_oleh],
+  )) as any
+
+  const flows = (await query(
+    `
+    SELECT caf.*, 
+           u.nama as approver_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama
+    FROM cuti_approval_flow caf
+    JOIN users u ON caf.approver_id = u.id
+    JOIN jenis_cuti jc ON caf.jenis_cuti_id = jc.id
+    JOIN lembaga l ON caf.lembaga_id = l.id
+    WHERE caf.id = ?
+  `,
+    [result.insertId],
+  )) as CutiApprovalFlow[]
+
+  return flows[0]
 }
 
 // Approval Log functions
@@ -420,22 +495,29 @@ export async function createApprovalLogs(cutiId: number, approvalFlows: CutiAppr
     const batasWaktu = new Date()
     batasWaktu.setDate(batasWaktu.getDate() + flow.batas_waktu_approval)
 
-    await query`
+    await query(
+      `
       INSERT INTO cuti_approval_log (cuti_id, approver_id, level, batas_waktu_approval)
-      VALUES (${cutiId}, ${flow.approver_id}, ${flow.level}, ${batasWaktu.toISOString()})
-    `
+      VALUES (?, ?, ?, ?)
+    `,
+      [cutiId, flow.approver_id, flow.level, batasWaktu.toISOString()],
+    )
   }
 }
 
 export async function getApprovalLogsByCuti(cutiId: number): Promise<CutiApprovalLog[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT cal.*, u.nama as approver_nama
     FROM cuti_approval_log cal
     JOIN users u ON cal.approver_id = u.id
-    WHERE cal.cuti_id = ${cutiId}
+    WHERE cal.cuti_id = ?
     ORDER BY cal.level
-  `
-  return result.rows as CutiApprovalLog[]
+  `,
+    [cutiId],
+  )) as CutiApprovalLog[]
+
+  return results
 }
 
 export async function updateApprovalLog(
@@ -444,83 +526,121 @@ export async function updateApprovalLog(
   status: string,
   catatan?: string,
 ): Promise<CutiApprovalLog> {
-  const result = await query`
+  await query(
+    `
     UPDATE cuti_approval_log 
-    SET status = ${status}, 
-        catatan = ${catatan || null},
-        tanggal_approval = CURRENT_TIMESTAMP
-    WHERE cuti_id = ${cutiId} AND level = ${level}
-    RETURNING *
-  `
-  return result.rows[0] as CutiApprovalLog
+    SET status = ?, 
+        catatan = ?,
+        tanggal_approval = NOW()
+    WHERE cuti_id = ? AND level = ?
+  `,
+    [status, catatan || null, cutiId, level],
+  )
+
+  const results = (await query(
+    `
+    SELECT cal.*, u.nama as approver_nama
+    FROM cuti_approval_log cal
+    JOIN users u ON cal.approver_id = u.id
+    WHERE cal.cuti_id = ? AND cal.level = ?
+  `,
+    [cutiId, level],
+  )) as CutiApprovalLog[]
+
+  return results[0]
 }
 
 export async function getPendingApprovalsByUser(userId: number): Promise<Cuti[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT DISTINCT c.*, 
            u.nama as user_nama,
            jc.nama_izin as jenis_cuti_nama,
            l.nama as lembaga_nama,
-           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+           DATEDIFF(c.tanggal_selesai, c.tanggal_mulai) + 1 as days_requested
     FROM cuti c
     JOIN users u ON c.user_id = u.id
     JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
     LEFT JOIN lembaga l ON u.lembaga_id = l.id
     JOIN cuti_approval_log cal ON c.id = cal.cuti_id
-    WHERE cal.approver_id = ${userId} 
+    WHERE cal.approver_id = ? 
       AND cal.status = 'pending'
       AND c.status IN ('pending', 'dalam_proses')
     ORDER BY c.created_at DESC
-  `
-  return result.rows as Cuti[]
+  `,
+    [userId],
+  )) as Cuti[]
+
+  return results
 }
 
 // Notification functions
 export async function createNotification(userId: number, pesan: string): Promise<Notification> {
-  const result = await query`
+  const result = (await query(
+    `
     INSERT INTO notifications (user_id, pesan)
-    VALUES (${userId}, ${pesan})
-    RETURNING *
-  `
-  return result.rows[0] as Notification
+    VALUES (?, ?)
+  `,
+    [userId, pesan],
+  )) as any
+
+  const notifications = (await query(
+    `
+    SELECT * FROM notifications WHERE id = ?
+  `,
+    [result.insertId],
+  )) as Notification[]
+
+  return notifications[0]
 }
 
 export async function getNotificationsByUser(userId: number): Promise<Notification[]> {
-  const result = await query`
+  const results = (await query(
+    `
     SELECT * FROM notifications 
-    WHERE user_id = ${userId}
+    WHERE user_id = ?
     ORDER BY created_at DESC
     LIMIT 50
-  `
-  return result.rows as Notification[]
+  `,
+    [userId],
+  )) as Notification[]
+
+  return results
 }
 
 export async function markNotificationAsRead(id: number): Promise<void> {
-  await query`
+  await query(
+    `
     UPDATE notifications 
     SET dibaca = TRUE 
-    WHERE id = ${id}
-  `
+    WHERE id = ?
+  `,
+    [id],
+  )
 }
 
 // Statistics functions
 export async function getCutiStats(lembagaId?: number) {
-  const whereClause = lembagaId ? query`WHERE u.lembaga_id = ${lembagaId}` : query``
-
-  const result = await query`
+  let sql = `
     SELECT 
       COUNT(*) as total_requests,
       COUNT(CASE WHEN c.status = 'pending' THEN 1 END) as pending_requests,
       COUNT(CASE WHEN c.status = 'dalam_proses' THEN 1 END) as dalam_proses_requests,
       COUNT(CASE WHEN c.status = 'disetujui' THEN 1 END) as approved_requests,
       COUNT(CASE WHEN c.status = 'ditolak' THEN 1 END) as rejected_requests,
-      COALESCE(SUM(CASE WHEN c.status = 'disetujui' THEN (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) ELSE 0 END), 0) as total_days_approved
+      COALESCE(SUM(CASE WHEN c.status = 'disetujui' THEN DATEDIFF(c.tanggal_selesai, c.tanggal_mulai) + 1 ELSE 0 END), 0) as total_days_approved
     FROM cuti c
     JOIN users u ON c.user_id = u.id
-    ${whereClause}
   `
-  return result.rows[0]
+
+  const params = []
+  if (lembagaId) {
+    sql += ` WHERE u.lembaga_id = ?`
+    params.push(lembagaId)
+  }
+
+  const results = (await query(sql, params)) as any[]
+  return results[0]
 }
 
-// Export the pool for use in other modules
-export { pool }
+export default pool
