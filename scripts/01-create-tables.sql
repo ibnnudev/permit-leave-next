@@ -1,13 +1,10 @@
--- Drop existing tables if they exist
-DROP TABLE IF EXISTS notifications CASCADE;
+-- Drop existing tables if they exist (for clean setup)
+DROP TABLE IF EXISTS notifikasi CASCADE;
 DROP TABLE IF EXISTS cuti_approval_log CASCADE;
 DROP TABLE IF EXISTS cuti_approval_flow CASCADE;
 DROP TABLE IF EXISTS cuti_kuota CASCADE;
-DROP TABLE IF EXISTS leave_requests CASCADE;
 DROP TABLE IF EXISTS cuti CASCADE;
 DROP TABLE IF EXISTS jenis_cuti CASCADE;
-DROP TABLE IF EXISTS leave_types CASCADE;
-DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS lembaga CASCADE;
 
@@ -39,7 +36,7 @@ CREATE TABLE users (
 CREATE TABLE jenis_cuti (
     id SERIAL PRIMARY KEY,
     nama_izin VARCHAR(255) NOT NULL,
-    maksimal_hari_per_tahun INTEGER DEFAULT 0,
+    maksimal_hari_per_tahun INTEGER NOT NULL DEFAULT 12,
     keterangan TEXT,
     perlu_dokumen BOOLEAN DEFAULT FALSE,
     approval_berjenjang BOOLEAN DEFAULT FALSE,
@@ -71,7 +68,7 @@ CREATE TABLE cuti_kuota (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     jenis_cuti_id INTEGER REFERENCES jenis_cuti(id) ON DELETE CASCADE,
     tahun INTEGER NOT NULL,
-    jatah_total INTEGER DEFAULT 0,
+    jatah_total INTEGER NOT NULL,
     jatah_terpakai INTEGER DEFAULT 0,
     UNIQUE(user_id, jenis_cuti_id, tahun)
 );
@@ -102,8 +99,8 @@ CREATE TABLE cuti_approval_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create NOTIFICATIONS table
-CREATE TABLE notifications (
+-- Create NOTIFIKASI table
+CREATE TABLE notifikasi (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     pesan TEXT NOT NULL,
@@ -116,7 +113,23 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_lembaga ON users(lembaga_id);
 CREATE INDEX idx_cuti_user ON cuti(user_id);
 CREATE INDEX idx_cuti_status ON cuti(status);
+CREATE INDEX idx_cuti_tanggal ON cuti(tanggal_mulai, tanggal_selesai);
 CREATE INDEX idx_approval_log_cuti ON cuti_approval_log(cuti_id);
 CREATE INDEX idx_approval_log_status ON cuti_approval_log(status);
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_unread ON notifications(user_id, dibaca);
+CREATE INDEX idx_notifikasi_user ON notifikasi(user_id);
+CREATE INDEX idx_notifikasi_dibaca ON notifikasi(dibaca);
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for updated_at
+CREATE TRIGGER update_lembaga_updated_at BEFORE UPDATE ON lembaga FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jenis_cuti_updated_at BEFORE UPDATE ON jenis_cuti FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_cuti_updated_at BEFORE UPDATE ON cuti FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

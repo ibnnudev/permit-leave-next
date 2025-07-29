@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: employee_leave_db_prod
+    environment:
+      POSTGRES_DB: employee_leave_db
+      POSTGRES_USER: leave_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leave_password123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./scripts/01-create-tables.sql:/docker-entrypoint-initdb.d/01-create-tables.sql
+      - ./scripts/02-seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leave_admin -d employee_leave_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Application (Production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: employee_leave_app_prod
+    environment:
+      - DATABASE_URL=postgresql://leave_admin:${POSTGRES_PASSWORD:-leave_password123}@postgres:5432/employee_leave_db
+      - JWT_SECRET=${JWT_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  app-network:
+    driver: bridge
