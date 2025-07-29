@@ -26,20 +26,13 @@ export async function decrypt(input: string): Promise<any> {
 }
 
 export async function login(formData: FormData) {
-  // Verify credentials and get the user
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const user = { id: 1, email, role: "admin" };
 
-  // This would typically verify against your database
-  // For now, we'll assume verification is done elsewhere
-
-  const user = { id: 1, email, role: "admin" }; // Replace with actual user data
-
-  // Create the session
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   const session = await encrypt({ user, expires });
 
-  // Save the session in a cookie
   cookies().set("session", session, { expires, httpOnly: true });
 }
 
@@ -58,7 +51,7 @@ export async function getCurrentUser() {
   try {
     const session = await getSession();
     if (!session?.user?.id) return null;
-
+    console.log("Current user ID:", session.user.id);
     const user = await getUserById(session.user.id);
     return user;
   } catch (error) {

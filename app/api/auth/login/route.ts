@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getUserByEmail } from "@/lib/db";
 import { encrypt } from "@/lib/auth";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -19,11 +18,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user from database
-    const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+    const user = await prisma.pegawai.findFirst({
+      where: { email_pribadi: email },
+      include: { lembaga: true },
     });
+
+    console.log("User found:", user);
+
     if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, user.kata_sandi);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -43,14 +44,16 @@ export async function POST(request: NextRequest) {
     // Create session
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const session = await encrypt({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        department: user.department,
-      },
-      expires,
+      id: user.id,
+      email: user.email_pribadi,
+      name: user.nama,
+      role: user.peran.toLowerCase(),
+      department: user.jabatan,
+      lembagaId: user.lembaga_id,
+      lembagaName: user.lembaga?.nama || null,
+      lembagaAddress: user.lembaga?.alamat || null,
+      lembagaPhone: user.lembaga?.telepon || null,
+      expires: expires,
     });
 
     // Set cookie

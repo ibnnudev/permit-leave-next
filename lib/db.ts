@@ -1,5 +1,6 @@
-import { PrismaClient } from "@/generated/prisma";
 import mysql from "mysql2/promise";
+import { PrismaClient, StatusCuti } from "@prisma/client";
+const prisma = new PrismaClient();
 
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
@@ -32,48 +33,38 @@ export async function getUserByEmail(email: string) {
 }
 
 export async function getUserById(id: number) {
-  const sql = "SELECT * FROM users WHERE id = ?";
-  const results = (await query(sql, [id])) as any[];
-  return results[0] || null;
+  const user = await prisma.pegawai.findFirst({
+    where: { id },
+    include: { lembaga: true },
+  });
+  return user;
 }
 
 export async function getAllUsers() {
-  const sql =
-    "SELECT id, name, email, role, department, created_at FROM users ORDER BY created_at DESC";
-  return await query(sql);
+  const users = await prisma.pegawai.findMany({
+    include: { lembaga: true },
+  });
+  return users;
 }
 
 // Leave request functions
 export async function getLeaveRequests(userId?: number) {
-  let sql = `
-    SELECT lr.*, u.name as user_name, u.email as user_email, 
-           jc.nama as jenis_cuti_nama, jc.max_days
-    FROM leave_requests lr
-    JOIN users u ON lr.user_id = u.id
-    JOIN jenis_cuti jc ON lr.jenis_cuti_id = jc.id
-  `;
-
-  const params: any[] = [];
-  if (userId) {
-    sql += " WHERE lr.user_id = ?";
-    params.push(userId);
-  }
-
-  sql += " ORDER BY lr.created_at DESC";
-  return await query(sql, params);
+  return await prisma.cuti.findMany({
+    include: {
+      pegawai: true,
+      jenisCuti: true,
+    },
+  });
 }
 
 export async function getLeaveRequestById(id: number) {
-  const sql = `
-    SELECT lr.*, u.name as user_name, u.email as user_email,
-           jc.nama as jenis_cuti_nama, jc.max_days
-    FROM leave_requests lr
-    JOIN users u ON lr.user_id = u.id
-    JOIN jenis_cuti jc ON lr.jenis_cuti_id = jc.id
-    WHERE lr.id = ?
-  `;
-  const results = (await query(sql, [id])) as any[];
-  return results[0] || null;
+  return await prisma.cuti.findFirst({
+    where: { id },
+    include: {
+      pegawai: true,
+      jenisCuti: true,
+    },
+  });
 }
 
 export async function createLeaveRequest(data: {
@@ -84,19 +75,17 @@ export async function createLeaveRequest(data: {
   total_days: number;
   reason: string;
 }) {
-  const sql = `
-    INSERT INTO leave_requests (user_id, jenis_cuti_id, start_date, end_date, total_days, reason, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending')
-  `;
-  const params = [
-    data.user_id,
-    data.jenis_cuti_id,
-    data.start_date,
-    data.end_date,
-    data.total_days,
-    data.reason,
-  ];
-  return await query(sql, params);
+  return await prisma.cuti.create({
+    data: {
+      pegawai_id: data.user_id,
+      jenis_cuti_id: data.jenis_cuti_id,
+      tanggal_mulai: data.start_date,
+      tanggal_selesai: data.end_date,
+      alasan: data.reason,
+      status: "PENDING",
+      level_terakhir_diproses: 0,
+    },
+  });
 }
 
 export async function updateLeaveRequestStatus(
@@ -105,49 +94,57 @@ export async function updateLeaveRequestStatus(
   reviewedBy?: number,
   reviewNotes?: string
 ) {
-  const sql = `
-    UPDATE leave_requests 
-    SET status = ?, reviewed_by = ?, review_notes = ?, reviewed_at = NOW()
-    WHERE id = ?
-  `;
-  return await query(sql, [status, reviewedBy, reviewNotes, id]);
+  return await prisma.cuti.update({
+    where: { id },
+    data: {
+      status: StatusCuti[status.toUpperCase() as keyof typeof StatusCuti],
+      disetujui_oleh_id: reviewedBy,
+      catatan_admin: reviewNotes,
+      diperbarui_pada: new Date(),
+    },
+  });
 }
 
 // Leave types functions
 export async function getLeaveTypes() {
-  const sql = "SELECT * FROM jenis_cuti ORDER BY nama";
-  return await query(sql);
+  const result = await prisma.jenisCuti.findMany();
+  return result;
 }
 
 export async function getLeaveTypeById(id: number) {
-  const sql = "SELECT * FROM jenis_cuti WHERE id = ?";
-  const results = (await query(sql, [id])) as any[];
-  return results[0] || null;
+  const result = await prisma.jenisCuti.findFirst({
+    where: { id },
+  });
+  return result;
 }
 
 // Quota functions
 export async function getUserQuota(userId: number, year: number) {
-  const sql = "SELECT * FROM kuota_cuti WHERE user_id = ? AND year = ?";
-  const results = (await query(sql, [userId, year])) as any[];
-  return results[0] || null;
+  const result = await prisma.kuotaCuti.findFirst({
+    where: {
+      pegawai_id: userId,
+      tahun: year,
+    },
+  });
+  return result;
 }
 
 export async function createUserQuota(data: {
   user_id: number;
+  jenis_cuti_id: number;
   year: number;
   total_quota: number;
   used_quota?: number;
 }) {
-  const sql = `
-    INSERT INTO kuota_cuti (user_id, year, total_quota, used_quota)
-    VALUES (?, ?, ?, ?)
-  `;
-  return await query(sql, [
-    data.user_id,
-    data.year,
-    data.total_quota,
-    data.used_quota || 0,
-  ]);
+  return await prisma.kuotaCuti.create({
+    data: {
+      pegawai_id: data.user_id,
+      jenis_cuti_id: data.jenis_cuti_id,
+      tahun: data.year,
+      jatah_total: data.total_quota,
+      jatah_terpakai: data.used_quota || 0,
+    },
+  });
 }
 
 export async function updateUserQuota(

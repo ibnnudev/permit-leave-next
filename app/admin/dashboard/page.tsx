@@ -11,7 +11,6 @@ import Link from "next/link"
 export default async function AdminDashboard() {
     const user = await requireRole(["admin", "superadmin"]);
 
-
     const [stats, recentRequests, employees] = await Promise.all([getLeaveStats(), getLeaveRequests(), getAllEmployees()])
 
     const recentRequestsLimited = recentRequests.slice(0, 8)
