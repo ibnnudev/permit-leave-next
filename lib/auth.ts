@@ -1,121 +1,84 @@
+import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
-import { redirect } from "next/navigation"
-import { jwtVerify, SignJWT } from "jose"
-import bcrypt from "bcryptjs"
-import { getUserByEmail, getUserById } from "./db"
+import { getUserById } from "./db"
 
-// ENV Config
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
-const secret = new TextEncoder().encode(JWT_SECRET)
+const secretKey = process.env.JWT_SECRET || "fallback-secret-key"
+const key = new TextEncoder().encode(secretKey)
 
-// Types
-export interface User {
-  id: number
-  lembaga_id?: number
-  nama: string
-  email: string
-  role: "superadmin" | "admin" | "karyawan"
-  jabatan?: string
-  lembaga_nama?: string
-}
-
-// Password utils
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10)
-}
-
-export async function verifyPassword(password: string, hashed: string): Promise<boolean> {
-  return bcrypt.compare(password, hashed)
-}
-
-// Token utils - These work in both Node.js and Edge Runtime
-export async function generateToken(user: User): Promise<string> {
-  return await new SignJWT({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    lembaga_id: user.lembaga_id,
-  })
+export async function encrypt(payload: any) {
+  return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(secret)
+    .setIssuedAt()
+    .setExpirationTime("24h")
+    .sign(key)
 }
 
-export async function verifyToken(token: string): Promise<any | null> {
+export async function decrypt(input: string): Promise<any> {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(input, key, {
+      algorithms: ["HS256"],
+    })
     return payload
-  } catch {
+  } catch (error) {
+    console.error("JWT verification failed:", error)
     return null
   }
 }
 
-// Decrypt function for middleware compatibility
-export async function decrypt(token: string): Promise<any | null> {
-  return await verifyToken(token)
+export async function login(formData: FormData) {
+  // Verify credentials and get the user
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
+
+  // This would typically verify against your database
+  // For now, we'll assume verification is done elsewhere
+
+  const user = { id: 1, email, role: "admin" } // Replace with actual user data
+
+  // Create the session
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+  const session = await encrypt({ user, expires })
+
+  // Save the session in a cookie
+  cookies().set("session", session, { expires, httpOnly: true })
 }
 
-// Auth utils - These require Node.js runtime (for database access)
-function mapUser(user: any): User {
-  return {
-    id: user.id,
-    lembaga_id: user.lembaga_id,
-    nama: user.nama,
-    email: user.email,
-    role: user.role,
-    jabatan: user.jabatan,
-    lembaga_nama: user.lembaga_nama,
-  }
+export async function logout() {
+  // Destroy the session
+  cookies().set("session", "", { expires: new Date(0) })
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function getSession() {
+  const session = cookies().get("session")?.value
+  if (!session) return null
+  return await decrypt(session)
+}
+
+export async function getCurrentUser() {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get("auth-token")?.value
-    if (!token) return null
+    const session = await getSession()
+    if (!session?.user?.id) return null
 
-    const decoded = await verifyToken(token)
-    if (!decoded?.id) return null
-
-    const user = await getUserById(decoded.id)
-    return user ? mapUser(user) : null
-  } catch {
+    const user = await getUserById(session.user.id)
+    return user
+  } catch (error) {
+    console.error("Error getting current user:", error)
     return null
   }
 }
 
-// Middleware guards - These require Node.js runtime
-export async function requireAuth(): Promise<User> {
-  const user = await getCurrentUser()
-  if (!user) redirect("/login")
-  return user
-}
+export async function updateSession(request: Request) {
+  const session = request.headers.get("cookie")?.includes("session")
+  if (!session) return
 
-export async function requireSuperAdmin(): Promise<User> {
-  const user = await requireAuth()
-  if (user.role !== "superadmin") redirect("/dashboard")
-  return user
-}
+  // Refresh the session so it doesn't expire
+  const parsed = await getSession()
+  if (parsed) {
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const newSession = await encrypt({ ...parsed, expires })
 
-export async function requireAdmin(): Promise<User> {
-  const user = await requireAuth()
-  if (!["admin", "superadmin"].includes(user.role)) {
-    redirect("/dashboard")
+    const response = new Response()
+    response.headers.set("Set-Cookie", `session=${newSession}; expires=${expires.toUTCString()}; httpOnly=true; path=/`)
+    return response
   }
-  return user
-}
-
-export async function requireEmployee(): Promise<User> {
-  const user = await requireAuth()
-  if (user.role !== "karyawan") redirect("/admin/dashboard")
-  return user
-}
-
-// Login logic - Requires Node.js runtime
-export async function login(email: string, password: string): Promise<User | null> {
-  const user = await getUserByEmail(email)
-  if (!user) return null
-
-  const isValid = await verifyPassword(password, user.password)
-  return isValid ? mapUser(user) : null
 }

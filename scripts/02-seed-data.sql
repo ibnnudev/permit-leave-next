@@ -22,10 +22,18 @@ INSERT INTO users (lembaga_id, nama, email, password, role, jabatan, tanggal_ber
 -- Insert jenis cuti
 INSERT INTO jenis_cuti (nama, deskripsi, max_hari) VALUES
 ('Cuti Tahunan', 'Cuti tahunan yang dapat diambil setiap tahun', 12),
-('Cuti Sakit', 'Cuti untuk keperluan kesehatan', 30),
-('Cuti Melahirkan', 'Cuti untuk ibu yang melahirkan', 90),
-('Cuti Menikah', 'Cuti untuk keperluan pernikahan', 3),
-('Cuti Khusus', 'Cuti untuk keperluan khusus lainnya', 7);
+('Cuti Sakit', 'Cuti untuk keperluan kesehatan dengan surat dokter', 30),
+('Cuti Melahirkan', 'Cuti khusus untuk ibu yang melahirkan', 90),
+('Cuti Menikah', 'Cuti khusus untuk pernikahan', 3),
+('Cuti Darurat', 'Cuti untuk keperluan mendesak/darurat', 5);
+
+-- Insert sample users (passwords are hashed for 'password')
+INSERT INTO users (name, email, password, role, department) VALUES
+('Super Admin', 'superadmin@system.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superadmin', 'IT'),
+('Admin User', 'admin1@teknologi.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'HR'),
+('John Doe', 'john@teknologi.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'Engineering'),
+('Jane Smith', 'jane@teknologi.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'Marketing'),
+('Bob Wilson', 'bob@teknologi.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee', 'Sales');
 
 -- Insert kuota_cuti for current year
 INSERT INTO kuota_cuti (user_id, jenis_cuti_id, tahun, kuota_total, kuota_terpakai) VALUES
@@ -164,3 +172,9 @@ INSERT INTO cuti_requests (user_id, jenis_cuti_id, tanggal_mulai, tanggal_selesa
 (5, 1, '2024-03-01', '2024-03-01', 1, 'Acara keluarga', 'approved', 2, '2024-02-28 14:30:00'),
 (5, 2, '2024-03-25', '2024-03-27', 3, 'Sakit demam', 'approved', 2, '2024-03-25 09:15:00'),
 (6, 2, '2024-04-01', '2024-04-01', 1, 'Kontrol kesehatan', 'rejected', 3, '2024-03-30 16:45:00');
+
+-- Insert sample leave requests
+INSERT INTO leave_requests (user_id, jenis_cuti_id, start_date, end_date, total_days, reason, status) VALUES
+(3, 1, '2024-01-15', '2024-01-16', 2, 'Keperluan keluarga', 'approved'),
+(4, 1, '2024-02-10', '2024-02-14', 5, 'Liburan keluarga', 'approved'),
+(5, 1, '2024-03-01', '2024-03-03', 3, 'Acara keluarga', 'pending');

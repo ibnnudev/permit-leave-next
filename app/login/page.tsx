@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -8,15 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Building2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,42 +26,35 @@ export default function LoginPage() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Redirect based on user role
-        if (data.user.role === "superadmin" || data.user.role === "admin") {
-          router.push("/admin/dashboard")
-        } else {
-          router.push("/dashboard")
-        }
-        // Force page refresh to ensure middleware runs
-        window.location.reload()
+        // Force a page reload to ensure middleware runs
+        window.location.href = data.redirectUrl || "/dashboard"
       } else {
         setError(data.error || "Login failed")
       }
     } catch (error) {
-      setError("Terjadi kesalahan. Silakan coba lagi.")
+      setError("An error occurred during login")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Building2 className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">Sistem Manajemen Cuti</CardTitle>
-          <CardDescription>Masuk ke akun Anda untuk melanjutkan</CardDescription>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
+          <CardDescription className="text-center">
+            Enter your email and password to access your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,9 +69,9 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="nama@perusahaan.com"
-                value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -90,39 +82,38 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Masukkan password"
-                value={formData.password}
-                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Masuk...
+                  Signing in...
                 </>
               ) : (
-                "Masuk"
+                "Sign in"
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p className="mb-2">Demo Akun:</p>
-            <div className="space-y-1 text-xs">
+          <div className="mt-6 text-sm text-gray-600">
+            <p className="font-semibold">Demo Accounts:</p>
+            <div className="mt-2 space-y-1">
               <p>
-                <strong>Superadmin:</strong> superadmin@system.com
+                <strong>Superadmin:</strong> superadmin@system.com / password
               </p>
               <p>
-                <strong>Admin:</strong> admin1@teknologi.com
+                <strong>Admin:</strong> admin1@teknologi.com / password
               </p>
               <p>
-                <strong>Karyawan:</strong> john@teknologi.com
+                <strong>Employee:</strong> john@teknologi.com / password
               </p>
-              <p className="text-gray-500">Password: password</p>
             </div>
           </div>
         </CardContent>

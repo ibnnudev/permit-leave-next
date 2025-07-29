@@ -1,54 +1,55 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { decrypt } from "@/lib/auth"
 
-const publicRoutes = ["/login"]
+// Define protected routes
+const protectedRoutes = ["/dashboard", "/admin", "/leave-requests", "/cuti"]
 const adminRoutes = ["/admin"]
+const publicRoutes = ["/login", "/"]
 
-export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname
-  const isPublicRoute = publicRoutes.includes(path)
+export default async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname
+  const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
   const isAdminRoute = adminRoutes.some((route) => path.startsWith(route))
+  const isPublicRoute = publicRoutes.includes(path)
 
-  // Get session token
-  const token = request.cookies.get("auth-token")?.value
+  // Get the session from the cookie
+  const cookie = req.cookies.get("session")?.value
+  const session = await decrypt(cookie)
 
-  // Redirect to login if no token and not on public route
-  if (!token && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.nextUrl))
+  // Redirect to login if accessing protected route without session
+  if (isProtectedRoute && !session) {
+    return NextResponse.redirect(new URL("/login", req.nextUrl))
   }
 
-  // If token exists, verify it
-  if (token) {
-    const user = await decrypt(token)
-
-    if (!user) {
-      // Invalid token, redirect to login
-      const response = NextResponse.redirect(new URL("/login", request.nextUrl))
-      response.cookies.delete("auth-token")
-      return response
+  // Redirect to dashboard if accessing login with valid session
+  if (path === "/login" && session) {
+    const user = session.user
+    if (user.role === "superadmin" || user.role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl))
     }
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
+  }
 
-    // Check admin routes
-    if (isAdminRoute && !["admin", "superadmin"].includes(user.role)) {
-      return NextResponse.redirect(new URL("/dashboard", request.nextUrl))
+  // Check admin access
+  if (isAdminRoute && session) {
+    const user = session.user
+    if (user.role !== "superadmin" && user.role !== "admin") {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
     }
+  }
 
-    // Redirect authenticated users away from login
-    if (path === "/login") {
-      const redirectUrl = ["admin", "superadmin"].includes(user.role) ? "/admin/dashboard" : "/dashboard"
-      return NextResponse.redirect(new URL(redirectUrl, request.nextUrl))
+  // Redirect root to appropriate dashboard
+  if (path === "/" && session) {
+    const user = session.user
+    if (user.role === "superadmin" || user.role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.nextUrl))
     }
-
-    // Redirect to appropriate dashboard from root
-    if (path === "/") {
-      const redirectUrl = ["admin", "superadmin"].includes(user.role) ? "/admin/dashboard" : "/dashboard"
-      return NextResponse.redirect(new URL(redirectUrl, request.nextUrl))
-    }
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
 }

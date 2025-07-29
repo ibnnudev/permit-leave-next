@@ -1,43 +1,71 @@
 import { type NextRequest, NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
+import { getUserByEmail } from "@/lib/db"
+import { encrypt } from "@/lib/auth"
 import { cookies } from "next/headers"
-import { login, generateToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email dan password harus diisi" }, { status: 400 })
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const user = await login(email, password)
+    // Get user from database
+    const user = await getUserByEmail(email)
     if (!user) {
-      return NextResponse.json({ error: "Email atau password salah" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
-    const token = await generateToken(user)
-    const cookieStore = await cookies()
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password)
+    if (!isValidPassword) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
+    }
 
-    cookieStore.set("auth-token", token, {
+    // Create session
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const session = await encrypt({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        department: user.department,
+      },
+      expires,
+    })
+
+    // Set cookie
+    cookies().set("session", session, {
+      expires,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
     })
 
+    // Determine redirect URL based on role
+    let redirectUrl = "/dashboard"
+    if (user.role === "superadmin" || user.role === "admin") {
+      redirectUrl = "/admin/dashboard"
+    }
+
     return NextResponse.json({
-      message: "Login berhasil",
+      success: true,
+      message: "Login successful",
+      redirectUrl,
       user: {
         id: user.id,
-        nama: user.nama,
         email: user.email,
+        name: user.name,
         role: user.role,
-        lembaga_id: user.lembaga_id,
-        lembaga_nama: user.lembaga_nama,
+        department: user.department,
       },
     })
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
