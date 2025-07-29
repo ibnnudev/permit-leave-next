@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email atau password salah" }, { status: 401 })
     }
 
-    const token = generateToken(user)
+    const token = await generateToken(user)
     const cookieStore = await cookies()
 
     cookieStore.set("auth-token", token, {
