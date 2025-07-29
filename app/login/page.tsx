@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
+import { Loader2, Building2 } from "lucide-react"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -27,14 +29,16 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(formData),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Redirect based on role
-        if (data.user.role === "admin") {
+        // Redirect based on user role
+        if (data.user.role === "superadmin") {
+          router.push("/superadmin/dashboard")
+        } else if (data.user.role === "admin") {
           router.push("/admin/dashboard")
         } else {
           router.push("/dashboard")
@@ -50,13 +54,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
-          <CardDescription className="text-center">
-            Enter your email and password to access your account
-          </CardDescription>
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Building2 className="h-8 w-8 text-blue-600" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold">Sistem Manajemen Cuti</CardTitle>
+          <CardDescription>Masuk ke akun Anda untuk melanjutkan</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,9 +78,9 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@perusahaan.com"
+                value={formData.email}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 required
                 disabled={isLoading}
               />
@@ -84,30 +91,40 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan password"
+                value={formData.password}
+                onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                 required
                 disabled={isLoading}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Masuk...
                 </>
               ) : (
-                "Sign in"
+                "Masuk"
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Demo Credentials:</p>
-            <p>Admin: admin@company.com / admin123</p>
-            <p>Employee: john.doe@company.com / password123</p>
+            <p className="mb-2">Demo Akun:</p>
+            <div className="space-y-1 text-xs">
+              <p>
+                <strong>Superadmin:</strong> superadmin@system.com
+              </p>
+              <p>
+                <strong>Admin:</strong> admin1@teknologi.com
+              </p>
+              <p>
+                <strong>Karyawan:</strong> john@teknologi.com
+              </p>
+              <p className="text-gray-500">Password: password</p>
+            </div>
           </div>
         </CardContent>
       </Card>

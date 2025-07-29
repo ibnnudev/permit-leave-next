@@ -1,64 +1,43 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { encrypt } from "@/lib/auth"
-import sql from "@/lib/db"
+import { login, generateToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+      return NextResponse.json({ error: "Email dan password harus diisi" }, { status: 400 })
     }
 
-    // Find user by email
-    const users = await sql`
-      SELECT id, email, password_hash, role 
-      FROM users 
-      WHERE email = ${email}
-    `
-
-    if (users.length === 0) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+    const user = await login(email, password)
+    if (!user) {
+      return NextResponse.json({ error: "Email atau password salah" }, { status: 401 })
     }
 
-    const user = users[0]
-
-    // For demo purposes, we'll use simple password comparison
-    // In production, use proper bcrypt comparison
-    const isValidPassword =
-      (password === "admin123" && email === "admin@company.com") ||
-      (password === "password123" && email.includes("@company.com"))
-
-    if (!isValidPassword) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Create session token
-    const token = await encrypt({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    })
-
-    // Set cookie
+    const token = generateToken(user)
     const cookieStore = await cookies()
-    cookieStore.set("session", token, {
+
+    cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
     return NextResponse.json({
+      message: "Login berhasil",
       user: {
         id: user.id,
+        nama: user.nama,
         email: user.email,
         role: user.role,
+        lembaga_id: user.lembaga_id,
+        lembaga_nama: user.lembaga_nama,
       },
     })
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 })
   }
 }

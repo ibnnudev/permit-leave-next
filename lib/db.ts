@@ -2,155 +2,483 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-export interface Employee {
+// Interfaces
+export interface Lembaga {
+  id: number
+  nama: string
+  alamat?: string
+  telepon?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface User {
+  id: number
+  lembaga_id?: number
+  nama: string
+  email: string
+  password: string
+  role: "superadmin" | "admin" | "karyawan"
+  jabatan?: string
+  tanggal_masuk?: string
+  created_at: string
+  updated_at: string
+  lembaga_nama?: string
+}
+
+export interface JenisCuti {
+  id: number
+  nama_izin: string
+  maksimal_hari_per_tahun: number
+  keterangan?: string
+  perlu_dokumen: boolean
+  approval_berjenjang: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Cuti {
   id: number
   user_id: number
-  first_name: string
-  last_name: string
-  employee_id: string
-  department: string
-  position: string
-  hire_date: string
-  annual_leave_days: number
-  sick_leave_days: number
-  email: string
-}
-
-export interface LeaveRequest {
-  id: number
-  employee_id: number
-  leave_type_id: number
-  start_date: string
-  end_date: string
-  days_requested: number
-  reason: string
-  status: "pending" | "approved" | "rejected"
-  admin_comments?: string
-  approved_by?: number
-  approved_at?: string
+  jenis_cuti_id: number
+  tanggal_mulai: string
+  tanggal_selesai: string
+  alasan: string
+  status: "pending" | "dalam_proses" | "disetujui" | "ditolak"
+  approval_terakhir_level: number
+  catatan_admin?: string
+  dicatat_oleh?: number
+  disetujui_oleh?: number
+  dokumen?: string
   created_at: string
-  employee_name: string
-  leave_type_name: string
+  updated_at: string
+  // Joined fields
+  user_nama?: string
+  jenis_cuti_nama?: string
+  lembaga_nama?: string
+  days_requested?: number
 }
 
-export interface LeaveType {
+export interface CutiKuota {
   id: number
-  name: string
-  description: string
-  max_days_per_year: number
+  user_id: number
+  jenis_cuti_id: number
+  tahun: number
+  jatah_total: number
+  jatah_terpakai: number
+  jenis_cuti_nama?: string
 }
 
-export async function getEmployeeByUserId(userId: number): Promise<Employee | null> {
+export interface CutiApprovalFlow {
+  id: number
+  lembaga_id: number
+  jenis_cuti_id: number
+  level: number
+  approver_id: number
+  batas_waktu_approval: number
+  dibuat_oleh?: number
+  created_at: string
+  approver_nama?: string
+  jenis_cuti_nama?: string
+  lembaga_nama?: string
+}
+
+export interface CutiApprovalLog {
+  id: number
+  cuti_id: number
+  approver_id: number
+  level: number
+  status: "pending" | "approved" | "rejected" | "auto_approved"
+  catatan?: string
+  tanggal_approval?: string
+  batas_waktu_approval?: string
+  created_at: string
+  approver_nama?: string
+}
+
+export interface Notification {
+  id: number
+  user_id: number
+  pesan: string
+  dibaca: boolean
+  created_at: string
+}
+
+// User functions
+export async function getUserByEmail(email: string): Promise<User | null> {
   const result = await sql`
-    SELECT e.*, u.email 
-    FROM employees e 
-    JOIN users u ON e.user_id = u.id 
-    WHERE e.user_id = ${userId}
+    SELECT u.*, l.nama as lembaga_nama 
+    FROM users u 
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id 
+    WHERE u.email = ${email}
   `
   return result[0] || null
 }
 
-export async function getAllEmployees(): Promise<Employee[]> {
+export async function getUserById(id: number): Promise<User | null> {
   const result = await sql`
-    SELECT e.*, u.email 
-    FROM employees e 
-    JOIN users u ON e.user_id = u.id 
-    ORDER BY e.first_name, e.last_name
+    SELECT u.*, l.nama as lembaga_nama 
+    FROM users u 
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id 
+    WHERE u.id = ${id}
   `
-  return result as Employee[]
+  return result[0] || null
 }
 
-export async function getLeaveRequests(employeeId?: number): Promise<LeaveRequest[]> {
-  const query = employeeId
-    ? sql`
-        SELECT lr.*, 
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-               lt.name as leave_type_name
-        FROM leave_requests lr
-        JOIN employees e ON lr.employee_id = e.id
-        JOIN leave_types lt ON lr.leave_type_id = lt.id
-        WHERE lr.employee_id = ${employeeId}
-        ORDER BY lr.created_at DESC
-      `
-    : sql`
-        SELECT lr.*, 
-               CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-               lt.name as leave_type_name
-        FROM leave_requests lr
-        JOIN employees e ON lr.employee_id = e.id
-        JOIN leave_types lt ON lr.leave_type_id = lt.id
-        ORDER BY lr.created_at DESC
-      `
-
-  const result = await query
-  return result as LeaveRequest[]
-}
-
-export async function getLeaveTypes(): Promise<LeaveType[]> {
-  const result = await sql`SELECT * FROM leave_types ORDER BY name`
-  return result as LeaveType[]
-}
-
-export async function createLeaveRequest(data: {
-  employee_id: number
-  leave_type_id: number
-  start_date: string
-  end_date: string
-  days_requested: number
-  reason: string
-}) {
+export async function getAllUsers(): Promise<User[]> {
   const result = await sql`
-    INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, days_requested, reason)
-    VALUES (${data.employee_id}, ${data.leave_type_id}, ${data.start_date}, ${data.end_date}, ${data.days_requested}, ${data.reason})
+    SELECT u.*, l.nama as lembaga_nama 
+    FROM users u 
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id 
+    ORDER BY u.nama
+  `
+  return result as User[]
+}
+
+export async function getUsersByLembaga(lembagaId: number): Promise<User[]> {
+  const result = await sql`
+    SELECT u.*, l.nama as lembaga_nama 
+    FROM users u 
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id 
+    WHERE u.lembaga_id = ${lembagaId}
+    ORDER BY u.nama
+  `
+  return result as User[]
+}
+
+export async function createUser(userData: {
+  lembaga_id?: number
+  nama: string
+  email: string
+  password: string
+  role: string
+  jabatan?: string
+  tanggal_masuk?: string
+}): Promise<User> {
+  const result = await sql`
+    INSERT INTO users (lembaga_id, nama, email, password, role, jabatan, tanggal_masuk)
+    VALUES (${userData.lembaga_id || null}, ${userData.nama}, ${userData.email}, ${userData.password}, ${userData.role}, ${userData.jabatan || null}, ${userData.tanggal_masuk || null})
     RETURNING *
   `
-  return result[0]
+  return result[0] as User
 }
 
-export async function updateLeaveRequestStatus(
-  requestId: number,
-  status: "approved" | "rejected",
-  adminComments?: string,
-  approvedBy?: number,
-) {
+// Lembaga functions
+export async function getAllLembaga(): Promise<Lembaga[]> {
+  const result = await sql`SELECT * FROM lembaga ORDER BY nama`
+  return result as Lembaga[]
+}
+
+export async function getLembagaById(id: number): Promise<Lembaga | null> {
+  const result = await sql`SELECT * FROM lembaga WHERE id = ${id}`
+  return result[0] || null
+}
+
+export async function createLembaga(data: {
+  nama: string
+  alamat?: string
+  telepon?: string
+}): Promise<Lembaga> {
   const result = await sql`
-    UPDATE leave_requests 
+    INSERT INTO lembaga (nama, alamat, telepon)
+    VALUES (${data.nama}, ${data.alamat || null}, ${data.telepon || null})
+    RETURNING *
+  `
+  return result[0] as Lembaga
+}
+
+// Jenis Cuti functions
+export async function getAllJenisCuti(): Promise<JenisCuti[]> {
+  const result = await sql`SELECT * FROM jenis_cuti ORDER BY nama_izin`
+  return result as JenisCuti[]
+}
+
+export async function getJenisCutiById(id: number): Promise<JenisCuti | null> {
+  const result = await sql`SELECT * FROM jenis_cuti WHERE id = ${id}`
+  return result[0] || null
+}
+
+export async function createJenisCuti(data: {
+  nama_izin: string
+  maksimal_hari_per_tahun: number
+  keterangan?: string
+  perlu_dokumen: boolean
+  approval_berjenjang: boolean
+}): Promise<JenisCuti> {
+  const result = await sql`
+    INSERT INTO jenis_cuti (nama_izin, maksimal_hari_per_tahun, keterangan, perlu_dokumen, approval_berjenjang)
+    VALUES (${data.nama_izin}, ${data.maksimal_hari_per_tahun}, ${data.keterangan || null}, ${data.perlu_dokumen}, ${data.approval_berjenjang})
+    RETURNING *
+  `
+  return result[0] as JenisCuti
+}
+
+// Cuti functions
+export async function getCutiByUserId(userId: number): Promise<Cuti[]> {
+  const result = await sql`
+    SELECT c.*, 
+           u.nama as user_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama,
+           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+    FROM cuti c
+    JOIN users u ON c.user_id = u.id
+    JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id
+    WHERE c.user_id = ${userId}
+    ORDER BY c.created_at DESC
+  `
+  return result as Cuti[]
+}
+
+export async function getAllCuti(): Promise<Cuti[]> {
+  const result = await sql`
+    SELECT c.*, 
+           u.nama as user_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama,
+           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+    FROM cuti c
+    JOIN users u ON c.user_id = u.id
+    JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id
+    ORDER BY c.created_at DESC
+  `
+  return result as Cuti[]
+}
+
+export async function getCutiById(id: number): Promise<Cuti | null> {
+  const result = await sql`
+    SELECT c.*, 
+           u.nama as user_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama,
+           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+    FROM cuti c
+    JOIN users u ON c.user_id = u.id
+    JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id
+    WHERE c.id = ${id}
+  `
+  return result[0] || null
+}
+
+export async function createCuti(data: {
+  user_id: number
+  jenis_cuti_id: number
+  tanggal_mulai: string
+  tanggal_selesai: string
+  alasan: string
+  dokumen?: string
+}): Promise<Cuti> {
+  const result = await sql`
+    INSERT INTO cuti (user_id, jenis_cuti_id, tanggal_mulai, tanggal_selesai, alasan, dokumen)
+    VALUES (${data.user_id}, ${data.jenis_cuti_id}, ${data.tanggal_mulai}, ${data.tanggal_selesai}, ${data.alasan}, ${data.dokumen || null})
+    RETURNING *
+  `
+  return result[0] as Cuti
+}
+
+export async function updateCutiStatus(
+  id: number,
+  status: string,
+  catatan_admin?: string,
+  disetujui_oleh?: number,
+): Promise<Cuti> {
+  const result = await sql`
+    UPDATE cuti 
     SET status = ${status}, 
-        admin_comments = ${adminComments || null},
-        approved_by = ${approvedBy || null},
-        approved_at = ${status === "approved" ? new Date().toISOString() : null},
+        catatan_admin = ${catatan_admin || null},
+        disetujui_oleh = ${disetujui_oleh || null},
         updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${requestId}
+    WHERE id = ${id}
     RETURNING *
   `
-  return result[0]
+  return result[0] as Cuti
 }
 
-export async function getLeaveStats(employeeId?: number) {
-  if (employeeId) {
-    const result = await sql`
-      SELECT 
-        COUNT(*) as total_requests,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_requests,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_requests,
-        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_requests,
-        COALESCE(SUM(CASE WHEN status = 'approved' THEN days_requested ELSE 0 END), 0) as total_days_taken
-      FROM leave_requests 
-      WHERE employee_id = ${employeeId}
+// Kuota functions
+export async function getCutiKuotaByUser(
+  userId: number,
+  tahun: number = new Date().getFullYear(),
+): Promise<CutiKuota[]> {
+  const result = await sql`
+    SELECT ck.*, jc.nama_izin as jenis_cuti_nama
+    FROM cuti_kuota ck
+    JOIN jenis_cuti jc ON ck.jenis_cuti_id = jc.id
+    WHERE ck.user_id = ${userId} AND ck.tahun = ${tahun}
+    ORDER BY jc.nama_izin
+  `
+  return result as CutiKuota[]
+}
+
+export async function updateCutiKuota(
+  userId: number,
+  jenisCutiId: number,
+  tahun: number,
+  jatahTerpakai: number,
+): Promise<void> {
+  await sql`
+    UPDATE cuti_kuota 
+    SET jatah_terpakai = jatah_terpakai + ${jatahTerpakai}
+    WHERE user_id = ${userId} AND jenis_cuti_id = ${jenisCutiId} AND tahun = ${tahun}
+  `
+}
+
+// Approval Flow functions
+export async function getApprovalFlow(lembagaId: number, jenisCutiId: number): Promise<CutiApprovalFlow[]> {
+  const result = await sql`
+    SELECT caf.*, 
+           u.nama as approver_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama
+    FROM cuti_approval_flow caf
+    JOIN users u ON caf.approver_id = u.id
+    JOIN jenis_cuti jc ON caf.jenis_cuti_id = jc.id
+    JOIN lembaga l ON caf.lembaga_id = l.id
+    WHERE caf.lembaga_id = ${lembagaId} AND caf.jenis_cuti_id = ${jenisCutiId}
+    ORDER BY caf.level
+  `
+  return result as CutiApprovalFlow[]
+}
+
+export async function getAllApprovalFlows(): Promise<CutiApprovalFlow[]> {
+  const result = await sql`
+    SELECT caf.*, 
+           u.nama as approver_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama
+    FROM cuti_approval_flow caf
+    JOIN users u ON caf.approver_id = u.id
+    JOIN jenis_cuti jc ON caf.jenis_cuti_id = jc.id
+    JOIN lembaga l ON caf.lembaga_id = l.id
+    ORDER BY caf.lembaga_id, caf.jenis_cuti_id, caf.level
+  `
+  return result as CutiApprovalFlow[]
+}
+
+export async function createApprovalFlow(data: {
+  lembaga_id: number
+  jenis_cuti_id: number
+  level: number
+  approver_id: number
+  batas_waktu_approval: number
+  dibuat_oleh: number
+}): Promise<CutiApprovalFlow> {
+  const result = await sql`
+    INSERT INTO cuti_approval_flow (lembaga_id, jenis_cuti_id, level, approver_id, batas_waktu_approval, dibuat_oleh)
+    VALUES (${data.lembaga_id}, ${data.jenis_cuti_id}, ${data.level}, ${data.approver_id}, ${data.batas_waktu_approval}, ${data.dibuat_oleh})
+    RETURNING *
+  `
+  return result[0] as CutiApprovalFlow
+}
+
+// Approval Log functions
+export async function createApprovalLogs(cutiId: number, approvalFlows: CutiApprovalFlow[]): Promise<void> {
+  for (const flow of approvalFlows) {
+    const batasWaktu = new Date()
+    batasWaktu.setDate(batasWaktu.getDate() + flow.batas_waktu_approval)
+
+    await sql`
+      INSERT INTO cuti_approval_log (cuti_id, approver_id, level, batas_waktu_approval)
+      VALUES (${cutiId}, ${flow.approver_id}, ${flow.level}, ${batasWaktu.toISOString()})
     `
-    return result[0]
-  } else {
-    const result = await sql`
-      SELECT 
-        COUNT(*) as total_requests,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_requests,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_requests,
-        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_requests,
-        COALESCE(SUM(CASE WHEN status = 'approved' THEN days_requested ELSE 0 END), 0) as total_days_taken
-      FROM leave_requests
-    `
-    return result[0]
   }
+}
+
+export async function getApprovalLogsByCuti(cutiId: number): Promise<CutiApprovalLog[]> {
+  const result = await sql`
+    SELECT cal.*, u.nama as approver_nama
+    FROM cuti_approval_log cal
+    JOIN users u ON cal.approver_id = u.id
+    WHERE cal.cuti_id = ${cutiId}
+    ORDER BY cal.level
+  `
+  return result as CutiApprovalLog[]
+}
+
+export async function updateApprovalLog(
+  cutiId: number,
+  level: number,
+  status: string,
+  catatan?: string,
+): Promise<CutiApprovalLog> {
+  const result = await sql`
+    UPDATE cuti_approval_log 
+    SET status = ${status}, 
+        catatan = ${catatan || null},
+        tanggal_approval = CURRENT_TIMESTAMP
+    WHERE cuti_id = ${cutiId} AND level = ${level}
+    RETURNING *
+  `
+  return result[0] as CutiApprovalLog
+}
+
+export async function getPendingApprovalsByUser(userId: number): Promise<Cuti[]> {
+  const result = await sql`
+    SELECT DISTINCT c.*, 
+           u.nama as user_nama,
+           jc.nama_izin as jenis_cuti_nama,
+           l.nama as lembaga_nama,
+           (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) as days_requested
+    FROM cuti c
+    JOIN users u ON c.user_id = u.id
+    JOIN jenis_cuti jc ON c.jenis_cuti_id = jc.id
+    LEFT JOIN lembaga l ON u.lembaga_id = l.id
+    JOIN cuti_approval_log cal ON c.id = cal.cuti_id
+    WHERE cal.approver_id = ${userId} 
+      AND cal.status = 'pending'
+      AND c.status IN ('pending', 'dalam_proses')
+    ORDER BY c.created_at DESC
+  `
+  return result as Cuti[]
+}
+
+// Notification functions
+export async function createNotification(userId: number, pesan: string): Promise<Notification> {
+  const result = await sql`
+    INSERT INTO notifications (user_id, pesan)
+    VALUES (${userId}, ${pesan})
+    RETURNING *
+  `
+  return result[0] as Notification
+}
+
+export async function getNotificationsByUser(userId: number): Promise<Notification[]> {
+  const result = await sql`
+    SELECT * FROM notifications 
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT 50
+  `
+  return result as Notification[]
+}
+
+export async function markNotificationAsRead(id: number): Promise<void> {
+  await sql`
+    UPDATE notifications 
+    SET dibaca = TRUE 
+    WHERE id = ${id}
+  `
+}
+
+// Statistics functions
+export async function getCutiStats(lembagaId?: number) {
+  const whereClause = lembagaId ? sql`WHERE u.lembaga_id = ${lembagaId}` : sql``
+
+  const result = await sql`
+    SELECT 
+      COUNT(*) as total_requests,
+      COUNT(CASE WHEN c.status = 'pending' THEN 1 END) as pending_requests,
+      COUNT(CASE WHEN c.status = 'dalam_proses' THEN 1 END) as dalam_proses_requests,
+      COUNT(CASE WHEN c.status = 'disetujui' THEN 1 END) as approved_requests,
+      COUNT(CASE WHEN c.status = 'ditolak' THEN 1 END) as rejected_requests,
+      COALESCE(SUM(CASE WHEN c.status = 'disetujui' THEN (DATE_PART('day', c.tanggal_selesai - c.tanggal_mulai) + 1) ELSE 0 END), 0) as total_days_approved
+    FROM cuti c
+    JOIN users u ON c.user_id = u.id
+    ${whereClause}
+  `
+  return result[0]
 }
 
 export default sql

@@ -2,8 +2,13 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
 export async function POST() {
-  const cookieStore = await cookies()
-  cookieStore.delete("session")
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete("auth-token")
 
-  return NextResponse.json({ success: true })
+    return NextResponse.json({ message: "Logout berhasil" })
+  } catch (error) {
+    console.error("Logout error:", error)
+    return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 })
+  }
 }
