@@ -1,108 +1,167 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+    provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
-model JenisCuti {
-  id            Int            @id @default(autoincrement())
-  nama          String         @db.VarChar(255)
-  max_days      Int
-  description   String?        @db.Text
-  created_at    DateTime       @default(now()) @db.Timestamp(0)
-  leaveRequests LeaveRequest[]
+model Lembaga {
+    id         Int      @id @default(autoincrement())
+    nama       String   @db.VarChar(255)
+    alamat     String   @db.Text
+    telepon    String   @db.VarChar(50)
+    created_at DateTime @default(now())
+    updated_at DateTime @default(now()) @updatedAt
 
-  @@map("jenis_cuti")
-}
+    users         User[]
+    approvalFlows CutiApprovalFlow[]
 
-model KuotaCuti {
-  id          Int      @id @default(autoincrement())
-  user_id     Int
-  year        Int
-  total_quota Int      @default(12)
-  used_quota  Int      @default(0)
-  created_at  DateTime @default(now()) @db.Timestamp(0)
-  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(0)
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "kuota_cuti_ibfk_1")
-
-  @@unique([user_id, year], map: "unique_user_year")
-  @@map("kuota_cuti")
-}
-
-model LeaveRequest {
-  id            Int           @id @default(autoincrement())
-  user_id       Int
-  jenis_cuti_id Int
-  start_date    DateTime      @db.Date
-  end_date      DateTime      @db.Date
-  total_days    Int
-  reason        String        @db.Text
-  status        Status?       @default(pending)
-  reviewed_by   Int?
-  review_notes  String?       @db.Text
-  reviewed_at   DateTime?     @db.Timestamp(0)
-  created_at    DateTime      @default(now()) @db.Timestamp(0)
-  updated_at    DateTime      @default(now()) @updatedAt @db.Timestamp(0)
-  user          User          @relation("LeaveUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "leave_requests_ibfk_1")
-  jenisCuti     JenisCuti     @relation(fields: [jenis_cuti_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "leave_requests_ibfk_2")
-  reviewer      User?         @relation("LeaveReviewer", fields: [reviewed_by], references: [id], onUpdate: Restrict, map: "leave_requests_ibfk_3")
-  ApprovalLog   ApprovalLog[]
-
-  @@index([jenis_cuti_id], map: "jenis_cuti_id")
-  @@index([reviewed_by], map: "reviewed_by")
-  @@index([user_id], map: "user_id")
-  @@map("leave_requests")
+    @@map("lembaga")
 }
 
 model User {
-  id                    Int            @id @default(autoincrement())
-  name                  String         @db.VarChar(255)
-  email                 String         @unique(map: "email") @db.VarChar(255)
-  password              String         @db.VarChar(255)
-  role                  Role?          @default(employee)
-  department            String?        @db.VarChar(255)
-  created_at            DateTime       @default(now()) @db.Timestamp(0)
-  updated_at            DateTime       @default(now()) @updatedAt @db.Timestamp(0)
-  kuotaCuti             KuotaCuti[]
-  leaveRequestsSent     LeaveRequest[] @relation("LeaveUser")
-  leaveRequestsReviewed LeaveRequest[] @relation("LeaveReviewer")
-  ApprovalLog           ApprovalLog[]
+    id            Int       @id @default(autoincrement())
+    lembaga_id    Int
+    nama          String    @db.VarChar(255)
+    email         String    @unique @db.VarChar(255)
+    password      String    @db.VarChar(255)
+    role          Role      @default(karyawan)
+    jabatan       String?   @db.VarChar(255)
+    tanggal_masuk DateTime?
+    created_at    DateTime  @default(now())
+    updated_at    DateTime  @default(now()) @updatedAt
 
-  @@map("users")
+    lembaga               Lembaga            @relation(fields: [lembaga_id], references: [id])
+    kuotaCuti             KuotaCuti[]
+    leaveRequestsSent     LeaveRequest[]     @relation("LeaveUser")
+    leaveRequestsReviewed LeaveRequest[]     @relation("LeaveReviewer")
+    approvalLog           CutiApprovalLog[]
+    approvalFlows         CutiApprovalFlow[] @relation("ApproverFlow")
+    approvalFlowsCreated  CutiApprovalFlow[] @relation("FlowCreatedBy")
+    notifikasi            Notifikasi[]
+
+    @@map("users")
 }
 
-model ApprovalLog {
-  id               Int            @id @default(autoincrement())
-  leave_request_id Int
-  approver_id      Int
-  level            Int
-  status           ApprovalStatus @default(pending)
-  reviewed_at      DateTime?
+model JenisCuti {
+    id                      Int      @id @default(autoincrement())
+    nama_izin               String   @db.VarChar(255)
+    maksimal_hari_per_tahun Int
+    keterangan              String?  @db.Text
+    perlu_dokumen           Boolean  @default(false)
+    approval_berjenjang     Boolean  @default(true)
+    created_at              DateTime @default(now())
+    updated_at              DateTime @default(now()) @updatedAt
 
-  leaveRequest LeaveRequest @relation(fields: [leave_request_id], references: [id], onDelete: Cascade)
-  approver     User         @relation(fields: [approver_id], references: [id], onDelete: Cascade)
+    leaveRequests LeaveRequest[]
+    kuotaCuti     KuotaCuti[]
+    approvalFlows CutiApprovalFlow[]
 
-  @@map("approval_log")
+    @@map("jenis_cuti")
 }
 
-enum ApprovalStatus {
-  pending
-  approved
-  rejected
+model LeaveRequest {
+    id                      Int         @id @default(autoincrement())
+    user_id                 Int
+    jenis_cuti_id           Int
+    tanggal_mulai           DateTime
+    tanggal_selesai         DateTime
+    alasan                  String      @db.Text
+    status                  LeaveStatus @default(pending)
+    approval_terakhir_level Int         @default(0)
+    catatan_admin           String?     @db.Text
+    dicatat_oleh            String?     @db.VarChar(255)
+    disetujui_oleh          Int? // FK ke User.id
+    dokumen                 String?     @db.VarChar(255)
+    created_at              DateTime    @default(now())
+    updated_at              DateTime    @default(now()) @updatedAt
+
+    user        User              @relation("LeaveUser", fields: [user_id], references: [id])
+    jenisCuti   JenisCuti         @relation(fields: [jenis_cuti_id], references: [id])
+    reviewer    User?             @relation("LeaveReviewer", fields: [disetujui_oleh], references: [id])
+    approvalLog CutiApprovalLog[]
+
+    @@map("leave_requests")
+}
+
+model KuotaCuti {
+    id             Int @id @default(autoincrement())
+    user_id        Int
+    jenis_cuti_id  Int
+    tahun          Int
+    jatah_total    Int
+    jatah_terpakai Int @default(0)
+
+    user      User      @relation(fields: [user_id], references: [id])
+    jenisCuti JenisCuti @relation(fields: [jenis_cuti_id], references: [id])
+
+    @@unique([user_id, jenis_cuti_id, tahun])
+    @@map("kuota_cuti")
+}
+
+model CutiApprovalFlow {
+    id            Int  @id @default(autoincrement())
+    lembaga_id    Int
+    jenis_cuti_id Int?
+    level         Int
+    approver_id   Int
+    dibuat_oleh   Int
+
+    lembaga    Lembaga    @relation(fields: [lembaga_id], references: [id])
+    jenisCuti  JenisCuti? @relation(fields: [jenis_cuti_id], references: [id])
+    approver   User       @relation("ApproverFlow", fields: [approver_id], references: [id])
+    dibuatOleh User       @relation("FlowCreatedBy", fields: [dibuat_oleh], references: [id])
+
+    @@map("cuti_approval_flow")
+}
+
+model CutiApprovalLog {
+    id                   Int            @id @default(autoincrement())
+    cuti_id              Int
+    approver_id          Int
+    level                Int
+    status               ApprovalStatus @default(pending)
+    catatan              String?        @db.Text
+    tanggal_approval     DateTime?
+    batas_waktu_approval DateTime?
+
+    leaveRequest LeaveRequest @relation(fields: [cuti_id], references: [id])
+    approver     User         @relation(fields: [approver_id], references: [id])
+
+    @@map("cuti_approval_log")
+}
+
+model Notifikasi {
+    id         Int      @id @default(autoincrement())
+    user_id    Int
+    pesan      String   @db.Text
+    dibaca     Boolean  @default(false)
+    created_at DateTime @default(now())
+
+    user User @relation(fields: [user_id], references: [id])
+
+    @@map("notifikasi")
 }
 
 enum Role {
-  superadmin
-  admin
-  employee
+    superadmin
+    admin
+    karyawan
 }
 
-enum Status {
-  pending
-  approved
-  rejected
+enum LeaveStatus {
+    pending
+    dalam_proses
+    disetujui
+    ditolak
+}
+
+enum ApprovalStatus {
+    pending
+    approved
+    rejected
+    auto_approved
 }

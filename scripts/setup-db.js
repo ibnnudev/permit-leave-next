@@ -4,7 +4,7 @@ const fs = require("fs")
 const path = require("path")
 
 // Load environment variables
-require("dotenv").config({ path: ".env.local" })
+require("dotenv").config({ path: ".env" })
 
 const dbConfig = {
     host: process.env.DB_HOST || "localhost",

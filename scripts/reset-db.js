@@ -1,5 +1,5 @@
 const mysql = require("mysql2/promise")
-require("dotenv").config({ path: ".env.local" })
+require("dotenv").config({ path: ".env" })
 
 // Set true jika ingin mematikan pemeriksaan foreign key
 const DISABLE_FOREIGN_KEY_CHECKS = true
