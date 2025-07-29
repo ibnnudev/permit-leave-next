@@ -1,6 +1,5 @@
 generator client {
     provider = "prisma-client-js"
-    output   = "../generated/prisma"
 }
 
 datasource db {
@@ -9,159 +8,162 @@ datasource db {
 }
 
 model Lembaga {
-    id         Int      @id @default(autoincrement())
-    nama       String   @db.VarChar(255)
-    alamat     String   @db.Text
-    telepon    String   @db.VarChar(50)
-    created_at DateTime @default(now())
-    updated_at DateTime @default(now()) @updatedAt
+    id              Int      @id @default(autoincrement())
+    nama            String
+    alamat          String
+    telepon         String
+    dibuat_pada     DateTime @default(now())
+    diperbarui_pada DateTime @default(now()) @updatedAt
 
-    users         User[]
-    approvalFlows CutiApprovalFlow[]
-
-    @@map("lembaga")
+    pegawai         Pegawai[]
+    alurPersetujuan AlurPersetujuan[]
 }
 
-model User {
-    id            Int       @id @default(autoincrement())
-    lembaga_id    Int
-    nama          String    @db.VarChar(255)
-    email         String    @unique @db.VarChar(255)
-    password      String    @db.VarChar(255)
-    role          Role      @default(karyawan)
-    jabatan       String?   @db.VarChar(255)
-    tanggal_masuk DateTime?
-    created_at    DateTime  @default(now())
-    updated_at    DateTime  @default(now()) @updatedAt
+model Pegawai {
+    id                  Int      @id @default(autoincrement())
+    lembaga_id          Int
+    nama                String
+    jenis_kelamin       String
+    jabatan             String
+    no_wa               String
+    alamat              String
+    tempat_lahir        String
+    tanggal_lahir       DateTime
+    tmt                 DateTime
+    status_pernikahan   String
+    status_pegawai      String
+    email_pribadi       String
+    email_yayasan       String
+    agama               String
+    pendidikan_terakhir String
+    kata_sandi          String
+    peran               Peran    @default(KARYAWAN)
+    dibuat_pada         DateTime @default(now())
+    diperbarui_pada     DateTime @default(now()) @updatedAt
 
-    lembaga               Lembaga            @relation(fields: [lembaga_id], references: [id])
-    kuotaCuti             KuotaCuti[]
-    leaveRequestsSent     LeaveRequest[]     @relation("LeaveUser")
-    leaveRequestsReviewed LeaveRequest[]     @relation("LeaveReviewer")
-    approvalLog           CutiApprovalLog[]
-    approvalFlows         CutiApprovalFlow[] @relation("ApproverFlow")
-    approvalFlowsCreated  CutiApprovalFlow[] @relation("FlowCreatedBy")
-    notifikasi            Notifikasi[]
+    lembaga               Lembaga                  @relation(fields: [lembaga_id], references: [id])
+    cuti_diajukan         Cuti[]                   @relation("CutiDiajukan")
+    cuti_disetujui        Cuti[]                   @relation("CutiDisetujui")
+    kuota_cuti            KuotaCuti[]
+    persetujuan_log       LogPersetujuan[]
+    alur_dibuat           AlurPersetujuan[]        @relation("DibuatOleh")
+    alur_sebagai_approver AlurPersetujuanPegawai[]
+    Notifikasi            Notifikasi[]
+}
 
-    @@map("users")
+enum Peran {
+    SUPERADMIN
+    ADMIN
+    KARYAWAN
 }
 
 model JenisCuti {
-    id                      Int      @id @default(autoincrement())
-    nama_izin               String   @db.VarChar(255)
-    maksimal_hari_per_tahun Int
-    keterangan              String?  @db.Text
-    perlu_dokumen           Boolean  @default(false)
-    approval_berjenjang     Boolean  @default(true)
-    created_at              DateTime @default(now())
-    updated_at              DateTime @default(now()) @updatedAt
+    id              Int      @id @default(autoincrement())
+    nama_izin       String
+    deskripsi       String
+    maksimal_hari   Int
+    perlu_dokumen   Boolean
+    dibuat_pada     DateTime @default(now())
+    diperbarui_pada DateTime @default(now()) @updatedAt
+    berjenjang      Boolean  @default(true)
 
-    leaveRequests LeaveRequest[]
-    kuotaCuti     KuotaCuti[]
-    approvalFlows CutiApprovalFlow[]
-
-    @@map("jenis_cuti")
+    cuti            Cuti[]
+    kuota           KuotaCuti[]
+    alurPersetujuan AlurPersetujuan[]
 }
 
-model LeaveRequest {
-    id                      Int         @id @default(autoincrement())
-    user_id                 Int
+model Cuti {
+    id                      Int        @id @default(autoincrement())
+    pegawai_id              Int
     jenis_cuti_id           Int
     tanggal_mulai           DateTime
     tanggal_selesai         DateTime
-    alasan                  String      @db.Text
-    status                  LeaveStatus @default(pending)
-    approval_terakhir_level Int         @default(0)
-    catatan_admin           String?     @db.Text
-    dicatat_oleh            String?     @db.VarChar(255)
-    disetujui_oleh          Int? // FK ke User.id
-    dokumen                 String?     @db.VarChar(255)
-    created_at              DateTime    @default(now())
-    updated_at              DateTime    @default(now()) @updatedAt
+    alasan                  String
+    status                  StatusCuti @default(DALAM_PROSES)
+    level_terakhir_diproses Int
+    catatan_admin           String?
+    dicatat_oleh            String?
+    disetujui_oleh_id       Int?
+    dokumen                 String?
+    dibuat_pada             DateTime   @default(now())
+    diperbarui_pada         DateTime   @default(now()) @updatedAt
 
-    user        User              @relation("LeaveUser", fields: [user_id], references: [id])
-    jenisCuti   JenisCuti         @relation(fields: [jenis_cuti_id], references: [id])
-    reviewer    User?             @relation("LeaveReviewer", fields: [disetujui_oleh], references: [id])
-    approvalLog CutiApprovalLog[]
+    pegawai         Pegawai          @relation("CutiDiajukan", fields: [pegawai_id], references: [id])
+    jenisCuti       JenisCuti        @relation(fields: [jenis_cuti_id], references: [id])
+    disetujui_oleh  Pegawai?         @relation("CutiDisetujui", fields: [disetujui_oleh_id], references: [id])
+    log_persetujuan LogPersetujuan[]
+}
 
-    @@map("leave_requests")
+enum StatusCuti {
+    PENDING
+    DALAM_PROSES
+    DISETUJUI
+    DITOLAK
 }
 
 model KuotaCuti {
     id             Int @id @default(autoincrement())
-    user_id        Int
+    pegawai_id     Int
     jenis_cuti_id  Int
     tahun          Int
     jatah_total    Int
-    jatah_terpakai Int @default(0)
+    jatah_terpakai Int
 
-    user      User      @relation(fields: [user_id], references: [id])
+    pegawai   Pegawai   @relation(fields: [pegawai_id], references: [id])
     jenisCuti JenisCuti @relation(fields: [jenis_cuti_id], references: [id])
 
-    @@unique([user_id, jenis_cuti_id, tahun])
-    @@map("kuota_cuti")
+    @@unique([pegawai_id, jenis_cuti_id, tahun])
 }
 
-model CutiApprovalFlow {
-    id            Int  @id @default(autoincrement())
-    lembaga_id    Int
-    jenis_cuti_id Int?
-    level         Int
-    approver_id   Int
-    dibuat_oleh   Int
+model AlurPersetujuan {
+    id             Int  @id @default(autoincrement())
+    lembaga_id     Int
+    jenis_cuti_id  Int?
+    level          Int
+    dibuat_oleh_id Int
 
-    lembaga    Lembaga    @relation(fields: [lembaga_id], references: [id])
-    jenisCuti  JenisCuti? @relation(fields: [jenis_cuti_id], references: [id])
-    approver   User       @relation("ApproverFlow", fields: [approver_id], references: [id])
-    dibuatOleh User       @relation("FlowCreatedBy", fields: [dibuat_oleh], references: [id])
-
-    @@map("cuti_approval_flow")
+    lembaga    Lembaga                  @relation(fields: [lembaga_id], references: [id])
+    jenisCuti  JenisCuti?               @relation(fields: [jenis_cuti_id], references: [id])
+    dibuatOleh Pegawai                  @relation("DibuatOleh", fields: [dibuat_oleh_id], references: [id])
+    approver   AlurPersetujuanPegawai[]
 }
 
-model CutiApprovalLog {
-    id                   Int            @id @default(autoincrement())
-    cuti_id              Int
-    approver_id          Int
-    level                Int
-    status               ApprovalStatus @default(pending)
-    catatan              String?        @db.Text
-    tanggal_approval     DateTime?
-    batas_waktu_approval DateTime?
+model AlurPersetujuanPegawai {
+    id                  Int @id @default(autoincrement())
+    alur_persetujuan_id Int
+    pegawai_id          Int
 
-    leaveRequest LeaveRequest @relation(fields: [cuti_id], references: [id])
-    approver     User         @relation(fields: [approver_id], references: [id])
+    alurPersetujuan AlurPersetujuan @relation(fields: [alur_persetujuan_id], references: [id])
+    pegawai         Pegawai         @relation(fields: [pegawai_id], references: [id])
+}
 
-    @@map("cuti_approval_log")
+model LogPersetujuan {
+    id                      Int               @id @default(autoincrement())
+    cuti_id                 Int
+    pegawai_id              Int
+    level                   Int
+    status                  StatusPersetujuan @default(PENDING)
+    catatan                 String?
+    tanggal_persetujuan     DateTime?
+    batas_waktu_persetujuan DateTime?
+
+    cuti    Cuti    @relation(fields: [cuti_id], references: [id])
+    pegawai Pegawai @relation(fields: [pegawai_id], references: [id])
+}
+
+enum StatusPersetujuan {
+    PENDING
+    APPROVED
+    REJECTED
+    AUTO_APPROVED
 }
 
 model Notifikasi {
-    id         Int      @id @default(autoincrement())
-    user_id    Int
-    pesan      String   @db.Text
-    dibaca     Boolean  @default(false)
-    created_at DateTime @default(now())
+    id          Int      @id @default(autoincrement())
+    pegawai_id  Int
+    pesan       String
+    dibaca      Boolean  @default(false)
+    dibuat_pada DateTime @default(now())
 
-    user User @relation(fields: [user_id], references: [id])
-
-    @@map("notifikasi")
-}
-
-enum Role {
-    superadmin
-    admin
-    karyawan
-}
-
-enum LeaveStatus {
-    pending
-    dalam_proses
-    disetujui
-    ditolak
-}
-
-enum ApprovalStatus {
-    pending
-    approved
-    rejected
-    auto_approved
+    pegawai Pegawai @relation(fields: [pegawai_id], references: [id])
 }
