@@ -34,9 +34,9 @@ export function Navbar({ user }: NavbarProps) {
         if (user.role == Role.SUPERADMIN) {
             return [
                 { href: "/superadmin/dashboard", label: "Dashboard" },
-                { href: "/superadmin/lembaga", label: "Kelola Lembaga" },
-                { href: "/superadmin/users", label: "Kelola Pengguna" },
-                { href: "/superadmin/jenis-cuti", label: "Jenis Cuti" },
+                { href: "/superadmin/institution", label: "Kelola Lembaga" },
+                { href: "/superadmin/employees", label: "Kelola Pengguna" },
+                { href: "/superadmin/leave-type", label: "Jenis Cuti" },
                 { href: "/superadmin/approval-flow", label: "Alur Persetujuan" },
             ]
         } else if (user.role == Role.ADMIN) {
@@ -57,7 +57,7 @@ export function Navbar({ user }: NavbarProps) {
     const getDashboardLink = () => {
         if (user.role == Role.SUPERADMIN) return "/superadmin/dashboard"
         if (user.role == Role.ADMIN) return "/admin/dashboard"
-        return "/dashboard"
+        return "/admin/employee"
     }
 
     const navItems = getNavItems()

@@ -4,16 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "db:check": "bash scripts/check-connection.sh",
-    "db:reset": "node scripts/reset-db.js",
-    "db:setup": "node scripts/setup-db.js",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio",
-    "prisma:format": "prisma format",
-    "prisma:migrate": "prisma migrate dev --name init"
+    "start": "next start"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
