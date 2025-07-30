@@ -31,7 +31,6 @@ export function Navbar({ user }: NavbarProps) {
     }
 
     const getNavItems = () => {
-        console.log("User role:", user.role)
         if (user.role == Role.SUPERADMIN) {
             return [
                 { href: "/superadmin/dashboard", label: "Dashboard" },

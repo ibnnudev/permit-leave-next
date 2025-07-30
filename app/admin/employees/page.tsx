@@ -10,7 +10,6 @@ export default async function EmployeesPage() {
     const user = await requireRole(['admin', 'superadmin', 'employee'])
     const employees = await getAllEmployeesWithQuota()
 
-    console.log("Employees data:", employees)
 
     return (
         <div className="min-h-screen bg-gray-50">

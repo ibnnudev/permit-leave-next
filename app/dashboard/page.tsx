@@ -12,7 +12,6 @@ import { Peran, StatusCuti } from "@prisma/client"
 
 export default async function EmployeeDashboard() {
     const user = await requireRole([Peran.KARYAWAN]);
-    console.log("Current user:", user);
 
     if (user.peran !== Peran.KARYAWAN) {
         if (user.peran === Peran.SUPERADMIN) {

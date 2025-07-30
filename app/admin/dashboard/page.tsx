@@ -15,12 +15,8 @@ export default async function AdminDashboard() {
 
     const [stats, recentRequests, employees, approverStats] = await Promise.all([getLeaveQuotaByEmployeeId(user.id), getLeaveByApprover(user.id), getAllEmployee(user.institution_id), getTotalLeavePerStatusViaFlow(user.id)]);
 
-    console.log("cuti by approver:", recentRequests);
-
     const recentRequestsLimited = recentRequests.slice(0, 8)
     const pendingRequests = recentRequests.filter((req: any) => req.status === LeaveStatus.PENDING)
-
-    console.log("Stats:", stats);
 
     return (
         <div className="min-h-screen bg-gray-50">
