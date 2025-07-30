@@ -6,9 +6,20 @@ import { StatsCard } from "@/components/ui/stats-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Clock, CheckCircle, XCircle, Calendar } from "lucide-react"
+import { Users, Clock, CheckCircle, XCircle, Calendar, ArrowUpRight } from "lucide-react"
 import Link from "next/link"
 import { LeaveStatus, Role } from "@prisma/client"
+
+
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 
 export default async function AdminDashboard() {
     const user = await requireRole([Role.SUPERADMIN])
@@ -83,32 +94,43 @@ export default async function AdminDashboard() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <div className="lg:flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-xl font-semibold">Pengajuan Cuti Terbaru</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Berikut adalah daftar pengajuan cuti terbaru dari karyawan kamu.
+                                </p>
+                            </div>
+                            <Link href={"/admin/leave-requests"} className="text-blue-600 hover:underline">
+                                <Button variant={"default"} size="sm">
+                                    Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" />
+                                </Button>
+                            </Link>
+                        </div>
                         {/* Pengajuan Terbaru */}
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-base">Pengajuan Cuti Terbaru</CardTitle>
-                                    <CardDescription>Data cuti yang baru aja masuk</CardDescription>
-                                </div>
-                                <Button asChild size="sm">
-                                    <Link href="/admin/leave-requests">Lihat Semua</Link>
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nama</TableHead>
+                                        <TableHead>Jenis Cuti</TableHead>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Durasi</TableHead>
+                                        <TableHead className="text-right">Aksi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {recentRequestsLimited.length > 0 ? (
                                         recentRequestsLimited.map((request) => (
-                                            <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                                <div>
-                                                    <p className="font-medium">{request.employee.name}</p>
-                                                    <p className="text-sm text-gray-600">{request.leaveType.name}</p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {new Date(request.start_date).toLocaleDateString()} -{" "}
-                                                        {new Date(request.end_date).toLocaleDateString()}
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
+                                            <TableRow key={request.id}>
+                                                <TableCell className="font-medium">{request.employee.name}</TableCell>
+                                                <TableCell>{request.leaveType.name}</TableCell>
+                                                <TableCell>
+                                                    {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell>
                                                     <Badge
                                                         variant={
                                                             request.status === LeaveStatus.APPROVED
@@ -130,80 +152,98 @@ export default async function AdminDashboard() {
                                                                     ? "Ditolak"
                                                                     : request.status === LeaveStatus.IN_PROCESS
                                                                         ? "Sedang Diproses"
-                                                                        : "Nggak Diketahui"
-                                                        }
+                                                                        : "N/A"}
                                                     </Badge>
-                                                    <p className="text-sm text-gray-500 mt-1">
-                                                        {
-                                                            request.start_date && request.end_date ? (
-                                                                <span>
-                                                                    {Math.ceil((new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 3600 * 24) + 1)} Hari
-                                                                </span>
-                                                            ) : (
-                                                                <span>-</span>
-                                                            )
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {Math.ceil(
+                                                        (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 3600 * 24)
+                                                    ) + 1}{" "}
+                                                    Hari
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button size={"sm"} variant={'outline'} asChild>
+                                                        <Link href={`/admin/leave-requests/${request.id}`}>
+                                                            Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
+                                                        </Link>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
                                         ))
                                     ) : (
-                                        <p className="text-gray-500 text-center py-4">Belum ada pengajuan cuti nih</p>
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-gray-500 py-4">
+                                                Belum ada pengajuan cuti nih
+                                            </TableCell>
+                                        </TableRow>
                                     )}
-                                </div>
-                            </CardContent>
+                                </TableBody>
+                            </Table>
                         </Card>
+                    </div>
+
+
+                    <div>
+                        <div className="lg:flex items-center justify-between mb-2 mt-8">
+                            <div>
+                                <h2 className="text-xl font-semibold">Pengajuan Cuti yang Masih Menunggu</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Berikut adalah daftar pengajuan cuti yang masih menunggu persetujuan.
+                                </p>
+                            </div>
+                            <Link href={"/admin/leave-requests?status=pending"} className="text-blue-600 hover:underline">
+                                <Button variant={"default"} size="sm">Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" /></Button>
+                            </Link>
+                        </div>
 
                         {/* Cuti yang Masih Nunggu */}
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-base">Perlu Disetujui Nih</CardTitle>
-                                    <CardDescription>Pengajuan cuti yang nunggu lampu hijau dari kamu</CardDescription>
-                                </div>
-                                <Badge variant="secondary">{pendingRequests.length}</Badge>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nama</TableHead>
+                                        <TableHead>Jenis Cuti</TableHead>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead className="text-right">Aksi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {pendingRequests.length > 0 ? (
                                         pendingRequests.slice(0, 5).map((request) => (
-                                            <div
-                                                key={request.id}
-                                                className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50 border-yellow-200"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">{request.employee.name}</p>
-                                                    <p className="text-sm text-gray-600">{request.leaveType.name}</p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {request.start_date && request.end_date ? (
-                                                            <span>
-                                                                {new Date(request.start_date).toLocaleDateString()} -{" "}
-                                                                {new Date(request.end_date).toLocaleDateString()}
-                                                            </span>
-                                                        ) : (
-                                                            <span>-</span>
-                                                        )}
-                                                    </p>
-                                                </div>
-                                                <Button size="sm" asChild>
-                                                    <Link href={`/admin/leave-requests/${request.id}`}>Tinjau</Link>
-                                                </Button>
-                                            </div>
+                                            <TableRow key={request.id}>
+                                                <TableCell>{request.employee.name}</TableCell>
+                                                <TableCell>{request.leaveType.name}</TableCell>
+                                                <TableCell>
+                                                    {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button size={"sm"} variant={'outline'} asChild>
+                                                        <Link href={`/admin/leave-requests/${request.id}`}>
+                                                            Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
+                                                        </Link>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
                                         ))
                                     ) : (
-                                        <p className="text-gray-500 text-center py-4">Belum ada yang nunggu disetujui</p>
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-gray-500 py-4">
+                                                Belum ada yang nunggu disetujui
+                                            </TableCell>
+                                        </TableRow>
                                     )}
-                                </div>
-                                {pendingRequests.length > 5 && (
-                                    <div className="mt-4 text-center">
-                                        <Button variant="outline" asChild>
-                                            <Link href="/admin/leave-requests?status=pending">Lihat Semua yang Menunggu</Link>
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
+                                </TableBody>
+                            </Table>
                         </Card>
                     </div>
+
+                    {pendingRequests.length > 5 && (
+                        <div className="mt-4 text-center">
+                            <Button variant="outline" asChild>
+                                <Link href="/admin/leave-requests?status=pending">Lihat Semua yang Menunggu</Link>
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
