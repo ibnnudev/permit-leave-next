@@ -37,8 +37,9 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  // Destroy the session
-  cookies().set("session", "", { expires: new Date(0) });
+  // Clear the session cookie
+  cookies().set("session", "", { expires: new Date(0), httpOnly: true });
+  return { message: "Logged out successfully" };
 }
 
 export async function getSession() {
@@ -51,7 +52,6 @@ export async function getCurrentUser() {
   try {
     const session = await getSession();
     if (!session?.user?.id) return null;
-    console.log("Current user ID:", session.user.id);
     const user = await getUserById(session.user.id);
     return user;
   } catch (error) {
@@ -81,7 +81,7 @@ export async function updateSession(request: Request) {
 
 export async function requireRole(allowedRoles: string[]) {
   const user = await getCurrentUser();
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || !allowedRoles.includes(user.peran)) {
     throw new Error("Unauthorized");
   }
   return user;

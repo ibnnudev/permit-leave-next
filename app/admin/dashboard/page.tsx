@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth"
-import { getLeaveStats, getLeaveRequests, getAllEmployees } from "@/lib/db"
+import { getAllPegawai, getJatahCutiByPegawaiId } from "@/service/pegawai"
 import { Navbar } from "@/components/layout/navbar"
 import { StatsCard } from "@/components/ui/stats-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,14 +7,20 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Clock, CheckCircle, XCircle, Calendar } from "lucide-react"
 import Link from "next/link"
+import { Peran, StatusCuti } from "@prisma/client"
+import { getCutiByApprover, getCutiByUserId, getCutiKuotaByUser, getTotalCutiPerStatusViaAlur } from "@/service/cuti"
 
 export default async function AdminDashboard() {
-    const user = await requireRole(["admin", "superadmin"]);
+    const user = await requireRole([Peran.ADMIN, Peran.SUPERADMIN]);
 
-    const [stats, recentRequests, employees] = await Promise.all([getLeaveStats(), getLeaveRequests(), getAllEmployees()])
+    const [stats, recentRequests, employees, approverStats] = await Promise.all([getJatahCutiByPegawaiId(user.id), getCutiByApprover(user.id), getAllPegawai(user.lembaga_id), getTotalCutiPerStatusViaAlur(user.id)]);
+
+    console.log("cuti by approver:", recentRequests);
 
     const recentRequestsLimited = recentRequests.slice(0, 8)
-    const pendingRequests = recentRequests.filter((req) => req.status === "pending")
+    const pendingRequests = recentRequests.filter((req) => req.status === StatusCuti.PENDING)
+
+    console.log("Stats:", stats);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -31,27 +37,27 @@ export default async function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                         <StatsCard title="Total Employees" value={employees.length} description="Active employees" icon={Users} />
                         <StatsCard
-                            title="Pending Requests"
-                            value={stats.pending_requests || 0}
-                            description="Awaiting approval"
+                            title="Awaiting Your Approval"
+                            value={approverStats.find((s) => s.status === StatusCuti.DALAM_PROSES)?.total || 0}
+                            description="Total requests awaiting your approval"
                             icon={Clock}
                         />
                         <StatsCard
                             title="Approved Requests"
-                            value={stats.approved_requests || 0}
-                            description="This year"
+                            value={approverStats.find((s) => s.status === StatusCuti.DISETUJUI)?.total || 0}
+                            description="Total requests approved this year"
                             icon={CheckCircle}
                         />
                         <StatsCard
                             title="Rejected Requests"
-                            value={stats.rejected_requests || 0}
-                            description="This year"
+                            value={approverStats.find((s) => s.status === StatusCuti.DITOLAK)?.total || 0}
+                            description="Total requests rejected"
                             icon={XCircle}
                         />
                         <StatsCard
                             title="Total Days Approved"
-                            value={stats.total_days_taken || 0}
-                            description="This year"
+                            value={approverStats.reduce((sum, s) => sum + (s.total || 0), 0)}
+                            description="Total days of leave approved this year"
                             icon={Calendar}
                         />
                     </div>

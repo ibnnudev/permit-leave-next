@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { encrypt } from "@/lib/auth";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
+import { Peran, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,82 +12,67 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email dan password wajib diisi." },
         { status: 400 }
       );
     }
 
-    // Get user from database
+    // Ambil user berdasarkan email
     const user = await prisma.pegawai.findFirst({
       where: { email_pribadi: email },
       include: { lembaga: true },
     });
 
-    console.log("User found:", user);
-
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Email atau password salah." },
         { status: 401 }
       );
     }
 
-    // Verify password
+    // Cek password
     const isValidPassword = await bcrypt.compare(password, user.kata_sandi);
     if (!isValidPassword) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Email atau password salah." },
         { status: 401 }
       );
     }
 
-    // Create session
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    const session = await encrypt({
-      id: user.id,
-      email: user.email_pribadi,
-      name: user.nama,
-      role: user.peran.toLowerCase(),
-      department: user.jabatan,
-      lembagaId: user.lembaga_id,
-      lembagaName: user.lembaga?.nama || null,
-      lembagaAddress: user.lembaga?.alamat || null,
-      lembagaPhone: user.lembaga?.telepon || null,
-      expires: expires,
-    });
+    // Buat session dan cookie
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 jam
+    const session = await encrypt({ user, expires });
 
-    // Set cookie
     cookies().set("session", session, {
-      expires,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      expires,
     });
 
-    // Determine redirect URL based on role
+    // Tentukan redirect berdasarkan peran
     let redirectUrl = "/dashboard";
-    if (user.role === "superadmin" || user.role === "admin") {
+    if (user.peran === Peran.SUPERADMIN || user.peran === Peran.ADMIN) {
       redirectUrl = "/admin/dashboard";
     }
 
+    // Hapus field sensitif sebelum dikirim ke client
+    const { kata_sandi, ...userSafe } = user;
+
     return NextResponse.json({
       success: true,
-      message: "Login successful",
+      message: "Login berhasil.",
       redirectUrl,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        department: user.department,
-      },
+      user: userSafe,
     });
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Terjadi kesalahan pada server." },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

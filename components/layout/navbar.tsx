@@ -13,10 +13,12 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Bell, Menu, X, LogOut, User, Settings, Building2 } from "lucide-react"
-import type { User as UserType } from "@/lib/auth"
+import { Lembaga, Pegawai, Peran } from "@prisma/client"
 
 interface NavbarProps {
-    user: UserType
+    user: Pegawai & {
+        lembaga: Lembaga
+    }
 }
 
 export function Navbar({ user }: NavbarProps) {
@@ -29,8 +31,8 @@ export function Navbar({ user }: NavbarProps) {
     }
 
     const getNavItems = () => {
-        console.log("User role:", user.role)
-        if (user.role === "superadmin") {
+        console.log("User role:", user.peran)
+        if (user.peran === Peran.SUPERADMIN) {
             return [
                 { href: "/superadmin/dashboard", label: "Dashboard" },
                 { href: "/superadmin/lembaga", label: "Kelola Lembaga" },
@@ -38,7 +40,7 @@ export function Navbar({ user }: NavbarProps) {
                 { href: "/superadmin/jenis-cuti", label: "Jenis Cuti" },
                 { href: "/superadmin/approval-flow", label: "Alur Persetujuan" },
             ]
-        } else if (user.role === "admin") {
+        } else if (user.peran === Peran.ADMIN) {
             return [
                 { href: "/admin/dashboard", label: "Dashboard" },
                 { href: "/admin/leave-requests", label: "Kelola Cuti" },
@@ -54,8 +56,8 @@ export function Navbar({ user }: NavbarProps) {
     }
 
     const getDashboardLink = () => {
-        if (user.role === "superadmin") return "/superadmin/dashboard"
-        if (user.role === "admin") return "/admin/dashboard"
+        if (user.peran === Peran.SUPERADMIN) return "/superadmin/dashboard"
+        if (user.peran === Peran.ADMIN) return "/admin/dashboard"
         return "/dashboard"
     }
 
@@ -96,18 +98,18 @@ export function Navbar({ user }: NavbarProps) {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarFallback>{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                                        <AvatarFallback>{user?.nama?.charAt(0).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56" align="end" forceMount>
                                 <div className="flex items-center justify-start gap-2 p-2">
                                     <div className="flex flex-col space-y-1 leading-none">
-                                        <p className="font-medium">{user.name}</p>
-                                        <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
+                                        <p className="font-medium">{user.nama}</p>
+                                        <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email_pribadi}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {user.role === "superadmin" ? "Super Admin" : user.role === "admin" ? "Admin" : "Karyawan"}
-                                            {user.lembaga_nama && ` • ${user.lembaga_nama}`}
+                                            {user.peran === Peran.SUPERADMIN ? "Super Admin" : user.peran === Peran.ADMIN ? "Admin" : "Karyawan"}
+                                            {user.lembaga.nama && ` • ${user.lembaga.nama}`}
                                         </p>
                                     </div>
                                 </div>
