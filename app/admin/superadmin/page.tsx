@@ -3,7 +3,7 @@ import { getAllEmployee } from "@/service/employee"
 import { getAllLeave } from "@/service/leave"
 import { Navbar } from "@/components/layout/navbar"
 import { StatsCard } from "@/components/ui/stats-card"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, Clock, CheckCircle, XCircle, Calendar, ArrowUpRight } from "lucide-react"
@@ -14,7 +14,6 @@ import { LeaveStatus, Role } from "@prisma/client"
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
     TableHead,
     TableHeader,
@@ -95,7 +94,7 @@ export default async function AdminDashboard() {
                     </div>
 
                     <div>
-                        <div className="lg:flex items-center justify-between mb-6">
+                        <div className="lg:flex items-center justify-between mb-2">
                             <div>
                                 <h2 className="text-xl font-semibold">Pengajuan Cuti Terbaru</h2>
                                 <p className="text-gray-600 mb-6">

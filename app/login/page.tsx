@@ -101,30 +101,6 @@ export default function LoginPage() {
                             )}
                         </Button>
                     </form>
-
-                    <div className="mt-6 text-sm text-gray-600">
-                        <p className="font-semibold">Demo Accounts:</p>
-                        <div className="mt-2 space-y-1">
-                            <p>
-                                <strong>Superadmin:</strong> superadmin@personal.com / password
-                            </p>
-                            <p>
-                                <strong>Admin 1:</strong> admin1@personal.com / password
-                            </p>
-                            <p>
-                                <strong>Admin 2:</strong> admin2@personal.com / password
-                            </p>
-                            <p>
-                                <strong>Teacher 1:</strong> teacher1@personal.com / password
-                            </p>
-                            <p>
-                                <strong>Teacher 2:</strong> teacher2@personal.com / password
-                            </p>
-                            <p>
-                                <strong>Staff 1:</strong> staff1@personal.com / password
-                            </p>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
         </div>
