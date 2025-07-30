@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { getUserById } from "./db";
+import prisma from "./prisma";
 
 const secretKey = process.env.JWT_SECRET || "fallback-secret-key";
 const key = new TextEncoder().encode(secretKey);
@@ -52,7 +52,10 @@ export async function getCurrentUser() {
   try {
     const session = await getSession();
     if (!session?.user?.id) return null;
-    const user = await getUserById(session.user.id);
+    const user = await prisma.employee.findFirst({
+      where: { id: session.user.id },
+      include: { institution: true }
+    });
     return user;
   } catch (error) {
     console.error("Error getting current user:", error);
@@ -81,7 +84,7 @@ export async function updateSession(request: Request) {
 
 export async function requireRole(allowedRoles: string[]) {
   const user = await getCurrentUser();
-  if (!user || !allowedRoles.includes(user.peran)) {
+  if (!user || !allowedRoles.includes(user.role)) {
     throw new Error("Unauthorized");
   }
   return user;

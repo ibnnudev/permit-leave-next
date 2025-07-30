@@ -2,9 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { encrypt } from "@/lib/auth";
 import { cookies } from "next/headers";
-import { Peran, PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Role } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,9 +17,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Ambil user berdasarkan email
-    const user = await prisma.pegawai.findFirst({
-      where: { email_pribadi: email },
-      include: { lembaga: true },
+    const user = await prisma.employee.findFirst({
+      where: { personal_email: email },
+      include: { institution: true },
     });
 
     if (!user) {
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cek password
-    const isValidPassword = await bcrypt.compare(password, user.kata_sandi);
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: "Email atau password salah." },
@@ -51,14 +50,14 @@ export async function POST(request: NextRequest) {
       expires,
     });
 
-    // Tentukan redirect berdasarkan peran
+    // Tentukan redirect berdasarkan Role
     let redirectUrl = "/dashboard";
-    if (user.peran === Peran.SUPERADMIN || user.peran === Peran.ADMIN) {
+    if (user.role === Role.SUPERADMIN || user.role === Role.ADMIN) {
       redirectUrl = "/admin/dashboard";
     }
 
     // Hapus field sensitif sebelum dikirim ke client
-    const { kata_sandi, ...userSafe } = user;
+    const { password: _password, ...userSafe } = user;
 
     return NextResponse.json({
       success: true,

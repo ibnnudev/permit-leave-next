@@ -1,14 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { decrypt } from "@/lib/auth";
-import { Peran } from "@prisma/client";
+import { Role } from "@prisma/client";
 
 // Route access rules
-const routeAccess: Record<string, Peran[]> = {
-  "/admin": [Peran.ADMIN, Peran.SUPERADMIN],
-  "/admin/dashboard": [Peran.ADMIN, Peran.SUPERADMIN],
-  "/dashboard": [Peran.KARYAWAN],
-  "/leave-requests": [Peran.KARYAWAN],
-  "/cuti": [Peran.KARYAWAN],
+const routeAccess: Record<string, Role[]> = {
+  "/admin": [Role.ADMIN, Role.SUPERADMIN],
+  "/admin/dashboard": [Role.ADMIN, Role.SUPERADMIN],
+  "/dashboard": [Role.EMPLOYEE],
+  "/leave-requests": [Role.EMPLOYEE],
+  "/cuti": [Role.EMPLOYEE],
 };
 
 const publicRoutes = ["/login", "/"];
@@ -18,7 +18,7 @@ export default async function middleware(req: NextRequest) {
 
   const sessionCookie = req.cookies.get("session")?.value;
   const session = sessionCookie ? await decrypt(sessionCookie) : null;
-  const role: Peran | null = session?.user?.peran ?? null;
+  const role: Role | null = session?.user?.role ?? null;
 
   const isPublicRoute = publicRoutes.includes(pathname);
   const isProtectedRoute = Object.keys(routeAccess).some((route) =>
@@ -45,7 +45,7 @@ export default async function middleware(req: NextRequest) {
   for (const route in routeAccess) {
     if (pathname.startsWith(route)) {
       const allowedRoles = routeAccess[route];
-      if (!allowedRoles.includes(role as Peran)) {
+      if (!allowedRoles.includes(role as Role)) {
         return clearSessionAndRedirect(req);
       }
     }
@@ -55,8 +55,8 @@ export default async function middleware(req: NextRequest) {
 }
 
 // Helpers
-function isAdmin(role: Peran | null): boolean {
-  return role === Peran.ADMIN || role === Peran.SUPERADMIN;
+function isAdmin(role: Role | null): boolean {
+  return role === Role.ADMIN || role === Role.SUPERADMIN;
 }
 
 function redirectToLogin(req: NextRequest) {

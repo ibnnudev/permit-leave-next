@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { requireRole } from "@/lib/auth"
-import { getCutiKuotaByUser, getCutiByUserId } from "@/service/cuti"
+import { getCutiKuotaByUser, getCutiByUserId } from "@/service/leave"
 import { Navbar } from "@/components/layout/navbar"
 import { StatsCard } from "@/components/ui/stats-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
