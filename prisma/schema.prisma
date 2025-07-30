@@ -7,163 +7,163 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Lembaga {
-    id              Int      @id @default(autoincrement())
-    nama            String
-    alamat          String
-    telepon         String
-    dibuat_pada     DateTime @default(now())
-    diperbarui_pada DateTime @default(now()) @updatedAt
+model Institution {
+    id         Int      @id @default(autoincrement())
+    name       String
+    address    String
+    phone      String
+    created_at DateTime @default(now())
+    updated_at DateTime @default(now()) @updatedAt
 
-    pegawai         Pegawai[]
-    alurPersetujuan AlurPersetujuan[]
+    employees     Employee[]
+    approvalFlows ApprovalFlow[]
 }
 
-model Pegawai {
-    id                  Int      @id @default(autoincrement())
-    lembaga_id          Int
-    nama                String
-    jenis_kelamin       String
-    jabatan             String
-    no_wa               String
-    alamat              String
-    tempat_lahir        String
-    tanggal_lahir       DateTime
-    tmt                 DateTime
-    status_pernikahan   String
-    status_pegawai      String
-    email_pribadi       String
-    email_yayasan       String
-    agama               String
-    pendidikan_terakhir String
-    kata_sandi          String
-    peran               Peran    @default(KARYAWAN)
-    dibuat_pada         DateTime @default(now())
-    diperbarui_pada     DateTime @default(now()) @updatedAt
+model Employee {
+    id                Int      @id @default(autoincrement())
+    institution_id    Int
+    name              String
+    gender            String
+    position          String
+    whatsapp_number   String
+    address           String
+    birth_place       String
+    birth_date        DateTime
+    join_date         DateTime
+    marital_status    String
+    employment_status String
+    personal_email    String
+    institution_email String
+    religion          String
+    last_education    String
+    password          String
+    role              Role     @default(EMPLOYEE)
+    created_at        DateTime @default(now())
+    updated_at        DateTime @default(now()) @updatedAt
 
-    lembaga               Lembaga                  @relation(fields: [lembaga_id], references: [id])
-    cuti_diajukan         Cuti[]                   @relation("CutiDiajukan")
-    cuti_disetujui        Cuti[]                   @relation("CutiDisetujui")
-    kuota_cuti            KuotaCuti[]
-    persetujuan_log       LogPersetujuan[]
-    alur_dibuat           AlurPersetujuan[]        @relation("DibuatOleh")
-    alur_sebagai_approver AlurPersetujuanPegawai[]
-    Notifikasi            Notifikasi[]
+    institution      Institution            @relation(fields: [institution_id], references: [id])
+    submitted_leaves Leave[]                @relation("SubmittedLeaves")
+    approved_leaves  Leave[]                @relation("ApprovedLeaves")
+    leave_quotas     LeaveQuota[]
+    approval_logs    ApprovalLog[]
+    created_flows    ApprovalFlow[]         @relation("CreatedBy")
+    approval_flows   ApprovalFlowEmployee[]
+    notifications    Notification[]
 }
 
-enum Peran {
+enum Role {
     SUPERADMIN
     ADMIN
-    KARYAWAN
+    EMPLOYEE
 }
 
-model JenisCuti {
-    id              Int      @id @default(autoincrement())
-    nama_izin       String
-    deskripsi       String
-    maksimal_hari   Int
-    perlu_dokumen   Boolean
-    dibuat_pada     DateTime @default(now())
-    diperbarui_pada DateTime @default(now()) @updatedAt
-    berjenjang      Boolean  @default(true)
+model LeaveType {
+    id               Int      @id @default(autoincrement())
+    name             String
+    description      String
+    max_days         Int
+    require_document Boolean
+    created_at       DateTime @default(now())
+    updated_at       DateTime @default(now()) @updatedAt
+    hierarchical     Boolean  @default(true)
 
-    cuti            Cuti[]
-    kuota           KuotaCuti[]
-    alurPersetujuan AlurPersetujuan[]
+    leaves        Leave[]
+    quotas        LeaveQuota[]
+    approvalFlows ApprovalFlow[]
 }
 
-model Cuti {
-    id                      Int        @id @default(autoincrement())
-    pegawai_id              Int
-    jenis_cuti_id           Int
-    tanggal_mulai           DateTime
-    tanggal_selesai         DateTime
-    alasan                  String
-    status                  StatusCuti @default(DALAM_PROSES)
-    level_terakhir_diproses Int
-    catatan_admin           String?
-    dicatat_oleh            String?
-    disetujui_oleh_id       Int?
-    dokumen                 String?
-    dibuat_pada             DateTime   @default(now())
-    diperbarui_pada         DateTime   @default(now()) @updatedAt
+model Leave {
+    id                   Int         @id @default(autoincrement())
+    employee_id          Int
+    leave_type_id        Int
+    start_date           DateTime
+    end_date             DateTime
+    reason               String
+    status               LeaveStatus @default(IN_PROCESS)
+    last_processed_level Int
+    admin_notes          String?
+    recorded_by          String?
+    approved_by_id       Int?
+    document             String?
+    created_at           DateTime    @default(now())
+    updated_at           DateTime    @default(now()) @updatedAt
 
-    pegawai         Pegawai          @relation("CutiDiajukan", fields: [pegawai_id], references: [id])
-    jenisCuti       JenisCuti        @relation(fields: [jenis_cuti_id], references: [id])
-    disetujui_oleh  Pegawai?         @relation("CutiDisetujui", fields: [disetujui_oleh_id], references: [id])
-    log_persetujuan LogPersetujuan[]
+    employee     Employee      @relation("SubmittedLeaves", fields: [employee_id], references: [id])
+    leaveType    LeaveType     @relation(fields: [leave_type_id], references: [id])
+    approvedBy   Employee?     @relation("ApprovedLeaves", fields: [approved_by_id], references: [id])
+    approvalLogs ApprovalLog[]
 }
 
-enum StatusCuti {
+enum LeaveStatus {
     PENDING
-    DALAM_PROSES
-    DISETUJUI
-    DITOLAK
+    IN_PROCESS
+    APPROVED
+    REJECTED
 }
 
-model KuotaCuti {
-    id             Int @id @default(autoincrement())
-    pegawai_id     Int
-    jenis_cuti_id  Int
-    tahun          Int
-    jatah_total    Int
-    jatah_terpakai Int
+model LeaveQuota {
+    id            Int @id @default(autoincrement())
+    employee_id   Int
+    leave_type_id Int
+    year          Int
+    total_quota   Int
+    used_quota    Int
 
-    pegawai   Pegawai   @relation(fields: [pegawai_id], references: [id])
-    jenisCuti JenisCuti @relation(fields: [jenis_cuti_id], references: [id])
+    employee  Employee  @relation(fields: [employee_id], references: [id])
+    leaveType LeaveType @relation(fields: [leave_type_id], references: [id])
 
-    @@unique([pegawai_id, jenis_cuti_id, tahun])
+    @@unique([employee_id, leave_type_id, year])
 }
 
-model AlurPersetujuan {
+model ApprovalFlow {
     id             Int  @id @default(autoincrement())
-    lembaga_id     Int
-    jenis_cuti_id  Int?
+    institution_id Int
+    leave_type_id  Int?
     level          Int
-    dibuat_oleh_id Int
+    created_by_id  Int
 
-    lembaga    Lembaga                  @relation(fields: [lembaga_id], references: [id])
-    jenisCuti  JenisCuti?               @relation(fields: [jenis_cuti_id], references: [id])
-    dibuatOleh Pegawai                  @relation("DibuatOleh", fields: [dibuat_oleh_id], references: [id])
-    approver   AlurPersetujuanPegawai[]
+    institution Institution            @relation(fields: [institution_id], references: [id])
+    leaveType   LeaveType?             @relation(fields: [leave_type_id], references: [id])
+    createdBy   Employee               @relation("CreatedBy", fields: [created_by_id], references: [id])
+    approvers   ApprovalFlowEmployee[]
 }
 
-model AlurPersetujuanPegawai {
-    id                  Int @id @default(autoincrement())
-    alur_persetujuan_id Int
-    pegawai_id          Int
+model ApprovalFlowEmployee {
+    id               Int @id @default(autoincrement())
+    approval_flow_id Int
+    employee_id      Int
 
-    alurPersetujuan AlurPersetujuan @relation(fields: [alur_persetujuan_id], references: [id])
-    pegawai         Pegawai         @relation(fields: [pegawai_id], references: [id])
+    approvalFlow ApprovalFlow @relation(fields: [approval_flow_id], references: [id])
+    employee     Employee     @relation(fields: [employee_id], references: [id])
 }
 
-model LogPersetujuan {
-    id                      Int               @id @default(autoincrement())
-    cuti_id                 Int
-    pegawai_id              Int
-    level                   Int
-    status                  StatusPersetujuan @default(PENDING)
-    catatan                 String?
-    tanggal_persetujuan     DateTime?
-    batas_waktu_persetujuan DateTime?
+model ApprovalLog {
+    id                Int            @id @default(autoincrement())
+    leave_id          Int
+    employee_id       Int
+    level             Int
+    status            ApprovalStatus @default(PENDING)
+    notes             String?
+    approval_date     DateTime?
+    approval_deadline DateTime?
 
-    cuti    Cuti    @relation(fields: [cuti_id], references: [id])
-    pegawai Pegawai @relation(fields: [pegawai_id], references: [id])
+    leave    Leave    @relation(fields: [leave_id], references: [id])
+    employee Employee @relation(fields: [employee_id], references: [id])
 }
 
-enum StatusPersetujuan {
+enum ApprovalStatus {
     PENDING
     APPROVED
     REJECTED
     AUTO_APPROVED
 }
 
-model Notifikasi {
+model Notification {
     id          Int      @id @default(autoincrement())
-    pegawai_id  Int
-    pesan       String
-    dibaca      Boolean  @default(false)
-    dibuat_pada DateTime @default(now())
+    employee_id Int
+    message     String
+    is_read     Boolean  @default(false)
+    created_at  DateTime @default(now())
 
-    pegawai Pegawai @relation(fields: [pegawai_id], references: [id])
+    employee Employee @relation(fields: [employee_id], references: [id])
 }
