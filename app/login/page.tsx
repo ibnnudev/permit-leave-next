@@ -109,10 +109,19 @@ export default function LoginPage() {
                                 <strong>Superadmin:</strong> superadmin@personal.com / password
                             </p>
                             <p>
-                                <strong>Admin:</strong> admin@personal.com / password
+                                <strong>Admin 1:</strong> admin1@personal.com / password
                             </p>
                             <p>
-                                <strong>Employee:</strong> guru@personal.com / password
+                                <strong>Admin 2:</strong> admin2@personal.com / password
+                            </p>
+                            <p>
+                                <strong>Teacher 1:</strong> teacher1@personal.com / password
+                            </p>
+                            <p>
+                                <strong>Teacher 2:</strong> teacher2@personal.com / password
+                            </p>
+                            <p>
+                                <strong>Staff 1:</strong> staff1@personal.com / password
                             </p>
                         </div>
                     </div>
