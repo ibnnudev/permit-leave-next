@@ -6,7 +6,7 @@ import { StatsCard } from "@/components/ui/stats-card"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Clock, CheckCircle, XCircle, Calendar, ArrowUpRight } from "lucide-react"
+import { Users, Clock, CheckCircle, XCircle, Calendar, ArrowUpRight, Sun } from "lucide-react"
 import Link from "next/link"
 import { LeaveStatus, Role } from "@prisma/client"
 
@@ -19,6 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default async function AdminDashboard() {
     const user = await requireRole([Role.SUPERADMIN])
@@ -51,7 +52,7 @@ export default async function AdminDashboard() {
                 <div className="px-4 py-6 sm:px-0">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold text-gray-900">Selamat Datang, {user.name} 👋</h1>
-                        <p className="text-gray-600">Pantau karyawan & pengajuan cuti di sini, Boss!</p>
+                        <p className="text-gray-600">Pantau karyawan & pengajuan cuti di sini!</p>
                     </div>
 
                     {/* Statistik */}
@@ -92,150 +93,156 @@ export default async function AdminDashboard() {
                             iconColor="text-purple-500"
                         />
                     </div>
-
-                    <div>
-                        <div className="lg:flex items-center justify-between mb-2">
+                    <Tabs defaultValue="recent" className="mt-4">
+                        <TabsList>
+                            <TabsTrigger value="recent">Pengajuan Terbaru <Sun color="red" className="inline h-4 w-4 ml-1" /></TabsTrigger>
+                            <TabsTrigger value="history">Pengajuan Masih Menunggu <Clock color="orange" className="inline h-4 w-4 ml-1" /></TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="recent">
                             <div>
-                                <h2 className="text-xl font-semibold">Pengajuan Cuti Terbaru</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Berikut adalah daftar pengajuan cuti terbaru dari karyawan kamu.
-                                </p>
-                            </div>
-                            <Link href={"/admin/leave-requests"} className="text-blue-600 hover:underline">
-                                <Button variant={"default"} size="sm">
-                                    Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                        </div>
-                        {/* Pengajuan Terbaru */}
-                        <Card>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nama</TableHead>
-                                        <TableHead>Jenis Cuti</TableHead>
-                                        <TableHead>Tanggal</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Durasi</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {recentRequestsLimited.length > 0 ? (
-                                        recentRequestsLimited.map((request) => (
-                                            <TableRow key={request.id}>
-                                                <TableCell className="font-medium">{request.employee.name}</TableCell>
-                                                <TableCell>{request.leaveType.name}</TableCell>
-                                                <TableCell>
-                                                    {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        variant={
-                                                            request.status === LeaveStatus.APPROVED
-                                                                ? "success"
-                                                                : request.status === LeaveStatus.PENDING
-                                                                    ? "secondary"
-                                                                    : request.status === LeaveStatus.IN_PROCESS
-                                                                        ? "info"
+                                <div className="lg:flex items-center justify-between mb-2">
+                                    <div className="hidden lg:block">
+                                        {/* <h2 className="text-xl font-semibold">Pengajuan Cuti Terbaru</h2> */}
+                                        <p className="text-gray-600 text-sm">
+                                            Berikut adalah daftar pengajuan cuti terbaru dari karyawan kamu.
+                                        </p>
+                                    </div>
+                                    <Link href={"/admin/leave-requests"} className="text-blue-600 hover:underline">
+                                        <Button variant={"default"} size="sm">
+                                            Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                </div>
+                                {/* Pengajuan Terbaru */}
+                                <Card>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nama</TableHead>
+                                                <TableHead>Jenis Cuti</TableHead>
+                                                <TableHead>Tanggal</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">Durasi</TableHead>
+                                                <TableHead className="text-right">Aksi</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {recentRequestsLimited.length > 0 ? (
+                                                recentRequestsLimited.map((request) => (
+                                                    <TableRow key={request.id}>
+                                                        <TableCell className="font-medium">{request.employee.name}</TableCell>
+                                                        <TableCell>{request.leaveType.name}</TableCell>
+                                                        <TableCell>
+                                                            {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant={
+                                                                    request.status === LeaveStatus.APPROVED
+                                                                        ? "success"
+                                                                        : request.status === LeaveStatus.PENDING
+                                                                            ? "secondary"
+                                                                            : request.status === LeaveStatus.IN_PROCESS
+                                                                                ? "info"
+                                                                                : request.status === LeaveStatus.REJECTED
+                                                                                    ? "destructive"
+                                                                                    : "secondary"
+                                                                }
+                                                            >
+                                                                {request.status === LeaveStatus.APPROVED
+                                                                    ? "Disetujui"
+                                                                    : request.status === LeaveStatus.PENDING
+                                                                        ? "Menunggu"
                                                                         : request.status === LeaveStatus.REJECTED
-                                                                            ? "destructive"
-                                                                            : "secondary"
-                                                        }
-                                                    >
-                                                        {request.status === LeaveStatus.APPROVED
-                                                            ? "Disetujui"
-                                                            : request.status === LeaveStatus.PENDING
-                                                                ? "Menunggu"
-                                                                : request.status === LeaveStatus.REJECTED
-                                                                    ? "Ditolak"
-                                                                    : request.status === LeaveStatus.IN_PROCESS
-                                                                        ? "Sedang Diproses"
-                                                                        : "N/A"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {Math.ceil(
-                                                        (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 3600 * 24)
-                                                    ) + 1}{" "}
-                                                    Hari
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size={"sm"} variant={'outline'} asChild>
-                                                        <Link href={`/admin/leave-requests/${request.id}`}>
-                                                            Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
-                                                        </Link>
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-gray-500 py-4">
-                                                Belum ada pengajuan cuti nih
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </Card>
-                    </div>
-
-
-                    <div>
-                        <div className="lg:flex items-center justify-between mb-2 mt-8">
-                            <div>
-                                <h2 className="text-xl font-semibold">Pengajuan Cuti yang Masih Menunggu</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Berikut adalah daftar pengajuan cuti yang masih menunggu persetujuan.
-                                </p>
+                                                                            ? "Ditolak"
+                                                                            : request.status === LeaveStatus.IN_PROCESS
+                                                                                ? "Sedang Diproses"
+                                                                                : "N/A"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {Math.ceil(
+                                                                (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 3600 * 24)
+                                                            ) + 1}{" "}
+                                                            Hari
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button size={"sm"} variant={'outline'} asChild>
+                                                                <Link href={`/admin/leave-requests/${request.id}`}>
+                                                                    Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
+                                                                </Link>
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center text-gray-500 py-4">
+                                                        Belum ada pengajuan cuti nih
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </Card>
                             </div>
-                            <Link href={"/admin/leave-requests?status=pending"} className="text-blue-600 hover:underline">
-                                <Button variant={"default"} size="sm">Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" /></Button>
-                            </Link>
-                        </div>
+                        </TabsContent>
+                        <TabsContent value="history">
+                            <div>
+                                <div className="lg:flex items-center justify-between mb-2">
+                                    <div className="hidden lg:block">
+                                        {/* <h2 className="text-xl font-semibold">Pengajuan Cuti yang Masih Menunggu</h2> */}
+                                        <p className="text-gray-600 text-sm">
+                                            Berikut adalah daftar pengajuan cuti yang masih menunggu persetujuan.
+                                        </p>
+                                    </div>
+                                    <Link href={"/admin/leave-requests?status=pending"} className="text-blue-600 hover:underline">
+                                        <Button variant={"default"} size="sm">Lihat Semua Pengajuan <ArrowUpRight className="h-4 w-4" /></Button>
+                                    </Link>
+                                </div>
 
-                        {/* Cuti yang Masih Nunggu */}
-                        <Card>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nama</TableHead>
-                                        <TableHead>Jenis Cuti</TableHead>
-                                        <TableHead>Tanggal</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {pendingRequests.length > 0 ? (
-                                        pendingRequests.slice(0, 5).map((request) => (
-                                            <TableRow key={request.id}>
-                                                <TableCell>{request.employee.name}</TableCell>
-                                                <TableCell>{request.leaveType.name}</TableCell>
-                                                <TableCell>
-                                                    {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size={"sm"} variant={'outline'} asChild>
-                                                        <Link href={`/admin/leave-requests/${request.id}`}>
-                                                            Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
-                                                        </Link>
-                                                    </Button>
-                                                </TableCell>
+                                {/* Cuti yang Masih Nunggu */}
+                                <Card>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nama</TableHead>
+                                                <TableHead>Jenis Cuti</TableHead>
+                                                <TableHead>Tanggal</TableHead>
+                                                <TableHead className="text-right">Aksi</TableHead>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-gray-500 py-4">
-                                                Belum ada yang nunggu disetujui
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </Card>
-                    </div>
-
+                                        </TableHeader>
+                                        <TableBody>
+                                            {pendingRequests.length > 0 ? (
+                                                pendingRequests.slice(0, 5).map((request) => (
+                                                    <TableRow key={request.id}>
+                                                        <TableCell>{request.employee.name}</TableCell>
+                                                        <TableCell>{request.leaveType.name}</TableCell>
+                                                        <TableCell>
+                                                            {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button size={"sm"} variant={'outline'} asChild>
+                                                                <Link href={`/admin/leave-requests/${request.id}`}>
+                                                                    Tinjau <ArrowUpRight className="inline h-4 w-4 ml-1" />
+                                                                </Link>
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="text-center text-gray-500 py-4">
+                                                        Belum ada yang nunggu disetujui
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
                     {pendingRequests.length > 5 && (
                         <div className="mt-4 text-center">
                             <Button variant="outline" asChild>

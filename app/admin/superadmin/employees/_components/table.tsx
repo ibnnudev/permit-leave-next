@@ -1,16 +1,12 @@
 "use client"
 
 import { DataTable } from "@/components/ui/data-table"
-import { Employee, Institution } from "@prisma/client"
+import { Employee } from "@prisma/client"
 import { toast } from "sonner"
 import { columns } from "../columns"
 import { CreateForm } from "./create-form"
 
-interface InstitutionWithEmployees extends Institution {
-    employees: Employee[]
-}
-
-export function InstitutionTableClient({ data }: { data: InstitutionWithEmployees[] }) {
+export function TableClient({ data }: { data: Employee[] }) {
     const handleSubmit = async (values: {
         name: string
         address: string
@@ -36,7 +32,7 @@ export function InstitutionTableClient({ data }: { data: InstitutionWithEmployee
             columns={columns}
             data={data}
             filterColumn="name"
-            addButtonText="Tambah Institusi"
+            addButtonText="Tambah Karyawan"
             formContent={<CreateForm onSubmit={handleSubmit} />}
         />
     )

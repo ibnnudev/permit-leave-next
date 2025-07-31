@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Institution } from "@prisma/client";
+import { Employee, Institution } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
-import { EditInstitutionModal } from "../_components/edit-form";
-import { DeleteInstitutionModal } from "../_components/delete-modal";
+import { EditModal } from "./edit-form";
+import { DeleteModal } from "./delete-modal";
 
-export function InstitutionActions({ institution }: { institution: Institution }) {
+export function ActionColumn({ data }: { data: Employee }) {
     const [openEdit, setOpenEdit] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
 
@@ -29,8 +29,8 @@ export function InstitutionActions({ institution }: { institution: Institution }
             </DropdownMenu>
 
 
-            <EditInstitutionModal open={openEdit} onClose={() => setOpenEdit(false)} institution={institution} />
-            <DeleteInstitutionModal open={openDelete} onClose={() => setOpenDelete(false)} institution={institution} />
+            <EditModal open={openEdit} onClose={() => setOpenEdit(false)} data={data} />
+            <DeleteModal open={openDelete} onClose={() => setOpenDelete(false)} data={data} />
         </>
     );
 }

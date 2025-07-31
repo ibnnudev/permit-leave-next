@@ -1,10 +1,10 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { Employee, Institution } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { SortableHeader } from "@/components/ui/sortable-ui";
 import { formatDate } from "@/lib/utils";
+import { Employee, Institution } from "@prisma/client";
+import { ColumnDef } from "@tanstack/react-table";
 import { InstitutionActions } from "./_components/action";
 
 interface InstitutionWithEmployees extends Institution {

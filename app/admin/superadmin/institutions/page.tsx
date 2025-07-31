@@ -1,9 +1,9 @@
-import { requireRole } from "@/lib/auth"
 import { Navbar } from "@/components/layout/navbar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Users } from "lucide-react"
-import { Role } from "@prisma/client"
+import { requireRole } from "@/lib/auth"
 import { getAllInstitutions } from "@/service/institution"
+import { Role } from "@prisma/client"
+import { Users } from "lucide-react"
 import { InstitutionTableClient } from "./_components/table"
 
 export default async function Page() {

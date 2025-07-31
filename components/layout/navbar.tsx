@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -24,6 +24,7 @@ interface NavbarProps {
 export function Navbar({ user }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const router = useRouter()
+    const pathname = usePathname()
 
     const handleLogout = async () => {
         await fetch("/api/auth/logout", { method: "POST" })
@@ -35,7 +36,7 @@ export function Navbar({ user }: NavbarProps) {
             return [
                 { href: "/admin/superadmin", label: "Dashboard" },
                 { href: "/admin/superadmin/institutions", label: "Kelola Lembaga" },
-                { href: "/admin/superadmin/employees", label: "Kelola Pengguna" },
+                { href: "/admin/superadmin/employees", label: "Kelola Karyawan" },
                 { href: "/admin/superadmin/leave-type", label: "Jenis Cuti" },
                 { href: "/admin/superadmin/approval-flow", label: "Alur Persetujuan" },
             ]
@@ -64,20 +65,21 @@ export function Navbar({ user }: NavbarProps) {
 
     return (
         <nav className="bg-white shadow-sm border-b">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex justify-between h-16">
                     <div className="flex items-center">
-                        <Link href={getDashboardLink()} className="flex items-center space-x-2">
+                        {/* <Link href={getDashboardLink()} className="flex items-center space-x-2">
                             <h1 className="text-xl font-bold text-gray-900">Sistem Cuti</h1>
-                        </Link>
+                        </Link> */}
 
                         {/* Desktop Navigation */}
-                        <div className="hidden md:ml-6 md:flex md:space-x-8">
+                        <div className="hidden md:flex md:space-x-8">
                             {navItems.map((item) => (
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className={`text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium ${pathname === item.href ? "text-gray-900" : ""
+                                        }`}
                                 >
                                     {item.label}
                                 </Link>

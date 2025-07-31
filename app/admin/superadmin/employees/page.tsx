@@ -1,16 +1,14 @@
-// @/app/employees/page.tsx
-import { requireRole } from "@/lib/auth";
-import { getAllEmployee } from "@/service/employee";
-import { Navbar } from "@/components/layout/navbar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Users } from "lucide-react";
-import { Role } from "@prisma/client";
-import { DataTable } from "@/components/ui/data-table";
-import { columns } from "./columns";
+import { Navbar } from "@/components/layout/navbar"
+import { Card, CardContent } from "@/components/ui/card"
+import { requireRole } from "@/lib/auth"
+import { getAllEmployee } from "@/service/employee"
+import { Role } from "@prisma/client"
+import { Users } from "lucide-react"
+import { TableClient } from "./_components/table"
 
-export default async function EmployeesPage() {
-    const user = await requireRole([Role.SUPERADMIN, Role.ADMIN]);
-    const employees = await getAllEmployee();
+export default async function Page() {
+    const user = await requireRole([Role.SUPERADMIN])
+    const employees = await getAllEmployee()
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -24,7 +22,7 @@ export default async function EmployeesPage() {
                     </div>
 
                     {employees.length > 0 ? (
-                        <DataTable columns={columns} data={employees} filterColumn="name" />
+                        <TableClient data={employees} />
                     ) : (
                         <Card>
                             <CardContent className="py-8 text-center">
@@ -36,5 +34,5 @@ export default async function EmployeesPage() {
                 </div>
             </main>
         </div>
-    );
+    )
 }
