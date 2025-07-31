@@ -1,6 +1,6 @@
-import { PrismaClient, Role } from "@prisma/client";
-import * as bcrypt from "bcryptjs";
-import { faker } from "@faker-js/faker";
+const { faker } = require("@faker-js/faker");
+const bcrypt = require("bcryptjs");
+const { PrismaClient, Role } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 const currentYear = new Date().getFullYear();
@@ -44,18 +44,28 @@ const generateIndonesianName = (gender: string) => {
     "Susanto",
   ];
 
-  const firstName = gender === "Male" 
-    ? faker.helpers.arrayElement(maleFirstNames)
-    : faker.helpers.arrayElement(femaleFirstNames);
-  
+  const firstName =
+    gender === "Male"
+      ? faker.helpers.arrayElement(maleFirstNames)
+      : faker.helpers.arrayElement(femaleFirstNames);
+
   return `${firstName} ${faker.helpers.arrayElement(lastNames)}`;
 };
 
 // Fungsi untuk menghasilkan alamat Indonesia
 const generateIndonesianAddress = () => {
-  const streets = ["Jl. Merdeka", "Jl. Sudirman", "Jl. Gatot Subroto", "Jl. Thamrin", "Jl. Hayam Wuruk"];
+  const streets = [
+    "Jl. Merdeka",
+    "Jl. Sudirman",
+    "Jl. Gatot Subroto",
+    "Jl. Thamrin",
+    "Jl. Hayam Wuruk",
+  ];
   const cities = ["Jakarta", "Bandung", "Surabaya", "Medan", "Yogyakarta"];
-  return `${faker.helpers.arrayElement(streets)} No. ${faker.number.int({min: 1, max: 200})}, ${faker.helpers.arrayElement(cities)}`;
+  return `${faker.helpers.arrayElement(streets)} No. ${faker.number.int({
+    min: 1,
+    max: 200,
+  })}, ${faker.helpers.arrayElement(cities)}`;
 };
 
 async function main() {
@@ -245,18 +255,33 @@ async function main() {
       position,
       whatsapp_number: `+628${faker.string.numeric(9)}`,
       address: generateIndonesianAddress(),
-      birth_place: faker.helpers.arrayElement(["Jakarta", "Bandung", "Surabaya", "Medan", "Yogyakarta"]),
+      birth_place: faker.helpers.arrayElement([
+        "Jakarta",
+        "Bandung",
+        "Surabaya",
+        "Medan",
+        "Yogyakarta",
+      ]),
       birth_date: faker.date.birthdate({ min: 22, max: 55, mode: "age" }),
-      join_date: faker.date.between({ from: '2018-01-01', to: '2023-01-01' }),
+      join_date: faker.date.between({ from: "2018-01-01", to: "2023-01-01" }),
       marital_status: faker.helpers.arrayElement(["Single", "Married"]),
       employment_status: faker.helpers.arrayElement(["Active", "Probation"]),
-      personal_email: faker.internet.email({ firstName: name.split(' ')[0], lastName: name.split(' ')[1] }),
-      institution_email: faker.internet.email({ 
-        firstName: name.split(' ')[0], 
-        lastName: name.split(' ')[1],
-        provider: "nurulilmi.sch.id"
+      personal_email: faker.internet.email({
+        firstName: name.split(" ")[0],
+        lastName: name.split(" ")[1],
       }),
-      religion: faker.helpers.arrayElement(["Islam", "Christian", "Catholic", "Hindu", "Buddhist"]),
+      institution_email: faker.internet.email({
+        firstName: name.split(" ")[0],
+        lastName: name.split(" ")[1],
+        provider: "nurulilmi.sch.id",
+      }),
+      religion: faker.helpers.arrayElement([
+        "Islam",
+        "Christian",
+        "Catholic",
+        "Hindu",
+        "Buddhist",
+      ]),
       last_education: faker.helpers.arrayElement([
         "SMA",
         "D3",
@@ -344,7 +369,11 @@ async function main() {
   for (const employee of employees) {
     for (const leaveType of await prisma.leaveType.findMany()) {
       // Skip cuti melahirkan dan haid untuk karyawan pria
-      if ((leaveType.id === 2 || leaveType.id === 7) && employee.gender === "Male") continue;
+      if (
+        (leaveType.id === 2 || leaveType.id === 7) &&
+        employee.gender === "Male"
+      )
+        continue;
 
       leaveQuotaData.push({
         employee_id: employee.id,
@@ -531,12 +560,18 @@ async function main() {
   ];
 
   // Membuat cuti untuk setiap karyawan (kecuali super admin)
-  for (const employee of employees.filter((e) => e.role !== "SUPERADMIN")) {
+  for (const employee of employees.filter(
+    (e: { role: string }) => e.role !== "SUPERADMIN"
+  )) {
     const leaveTypes = await prisma.leaveType.findMany();
 
     for (const leaveType of leaveTypes) {
       // Skip cuti melahirkan dan haid untuk karyawan pria
-      if ((leaveType.id === 2 || leaveType.id === 7) && employee.gender === "Male") continue;
+      if (
+        (leaveType.id === 2 || leaveType.id === 7) &&
+        employee.gender === "Male"
+      )
+        continue;
 
       // Buat 1-3 cuti per jenis per karyawan
       const count = faker.number.int({ min: 1, max: 3 });
@@ -601,13 +636,14 @@ async function main() {
           reason,
           status,
           last_processed_level: level,
-          admin_notes: status === "REJECTED" 
-            ? faker.helpers.arrayElement([
-                "Dokumen tidak lengkap",
-                "Jumlah hari melebihi ketentuan",
-                "Tidak sesuai dengan jadwal sekolah",
-              ])
-            : null,
+          admin_notes:
+            status === "REJECTED"
+              ? faker.helpers.arrayElement([
+                  "Dokumen tidak lengkap",
+                  "Jumlah hari melebihi ketentuan",
+                  "Tidak sesuai dengan jadwal sekolah",
+                ])
+              : null,
           recorded_by: faker.helpers.arrayElement([
             "System",
             "HRD",
@@ -724,7 +760,9 @@ async function main() {
       notificationData.push({
         employee_id: employee.id,
         message: faker.helpers.arrayElement([
-          `Selamat datang di sistem manajemen cuti, ${employee.name.split(' ')[0]}!`,
+          `Selamat datang di sistem manajemen cuti, ${
+            employee.name.split(" ")[0]
+          }!`,
           "Pengajuan cuti Anda telah diterima",
           "Pengajuan cuti Anda telah disetujui",
           "Pengajuan cuti Anda memerlukan informasi tambahan",
@@ -733,7 +771,9 @@ async function main() {
           "Kuota cuti Anda telah diperbarui",
           "Jadwal libur semester telah diumumkan",
           "Penting: Pembaruan kebijakan mengenai pengajuan cuti",
-          `Selamat ulang tahun, ${employee.name.split(' ')[0]}! Semoga harimu menyenangkan!`,
+          `Selamat ulang tahun, ${
+            employee.name.split(" ")[0]
+          }! Semoga harimu menyenangkan!`,
           "Pengingat: Batas akhir pengajuan cuti tahunan mendekati",
           "Workshop manajemen stres akan diadakan bulan depan",
         ]),

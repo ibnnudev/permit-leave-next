@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Inter_Tight } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "sonner"
+import { AuthProvider } from "@/context/auth-context"
+import { QueryProvider } from "@/context/query-context"
 
 const inter_tight = Inter_Tight({ subsets: ["latin"] })
 
@@ -20,11 +22,13 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en">
-            <body className={inter_tight.className}>
-                {children}
-                <Toaster />
-            </body>
-        </html>
-    )
+      <html lang="en">
+        <body className={inter_tight.className}>
+          <AuthProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </AuthProvider>
+          <Toaster />
+        </body>
+      </html>
+    );
 }
