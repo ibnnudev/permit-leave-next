@@ -9,7 +9,6 @@ const inter_tight = Inter_Tight({ subsets: ["latin"] })
 export const metadata: Metadata = {
     title: "SIM CUTI",
     description: "A comprehensive leave management system for employees and administrators",
-    generator: 'v0.dev',
     icons: {
         icon: "/logo/icon.png",
     }
