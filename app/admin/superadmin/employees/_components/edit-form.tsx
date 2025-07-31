@@ -79,7 +79,7 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                 }
 
                 onClose();
-                toast.success("Institusi berhasil diperbarui");
+                toast.success("Karyawan berhasil diperbarui");
                 form.reset(data);
             } catch (error) {
                 console.error("Error updating data:", error);
@@ -93,11 +93,10 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Edit Institusi</DialogTitle>
+                    <DialogTitle>Edit Karyawan</DialogTitle>
                 </DialogHeader>
-
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
@@ -113,32 +112,27 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                                 </FormItem>
                             )}
                         />
-
                         <FormField
                             control={form.control}
                             name="gender"
                             render={({ field }) => (
-                                <Select {...field} disabled={isPending}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih jenis kelamin" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="male">Laki-laki</SelectItem>
-                                        <SelectItem value="female">Perempuan</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="position"
-                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Jabatan</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={isPending} />
-                                    </FormControl>
+                                    <FormLabel>Jenis Kelamin</FormLabel>
+                                    <Select
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Jenis Kelamin" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Male">Laki-laki</SelectItem>
+                                            <SelectItem value="Female">Perempuan</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -247,7 +241,7 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                             name="institution_email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email Institusi</FormLabel>
+                                    <FormLabel>Email Karyawan</FormLabel>
                                     <FormControl>
                                         <Input type="email" {...field} disabled={isPending} />
                                     </FormControl>
@@ -308,7 +302,6 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                         </div>
                     </form>
                 </Form>
-
             </DialogContent>
         </Dialog>
     );

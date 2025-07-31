@@ -30,6 +30,13 @@ export const columns: ColumnDef<Employee>[] = [
         },
     },
     {
+        accessorKey: "gender",
+        header: ({ column }) => <SortableHeader column={column} label="Jenis Kelamin" />,
+        cell: ({ row }) => {
+            return <div>{row.getValue("gender") == "Male" ? "Laki-laki" : "Perempuan"}</div>;
+        },
+    },
+    {
         accessorKey: "position",
         header: ({ column }) => <SortableHeader column={column} label="Jabatan" />,
     },

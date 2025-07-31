@@ -7,9 +7,12 @@ import { Toaster } from "sonner"
 const inter_tight = Inter_Tight({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-    title: "Employee Leave Management System",
+    title: "SIM CUTI",
     description: "A comprehensive leave management system for employees and administrators",
-    generator: 'v0.dev'
+    generator: 'v0.dev',
+    icons: {
+        icon: "/logo/icon.png",
+    }
 }
 
 export default function RootLayout({
