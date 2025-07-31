@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
-    "@hookform/resolvers": "^3.3.2",
+    "@hookform/resolvers": "^5.2.1",
     "@prisma/client": "^6.13.0",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
@@ -39,6 +39,7 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@tanstack/react-table": "^8.21.3",
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -59,7 +60,7 @@
     "react": "^18",
     "react-day-picker": "latest",
     "react-dom": "^18",
-    "react-hook-form": "latest",
+    "react-hook-form": "^7.61.1",
     "react-resizable-panels": "latest",
     "recharts": "latest",
     "sonner": "latest",
@@ -67,7 +68,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.20.3",
     "vaul": "latest",
-    "zod": "^3.22.4"
+    "zod": "^4.0.14"
   },
   "devDependencies": {
     "@prisma/internals": "^6.13.0",

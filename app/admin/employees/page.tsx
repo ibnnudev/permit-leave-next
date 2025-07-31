@@ -1,15 +1,15 @@
 import { requireRole } from "@/lib/auth"
-import { getAllEmployees, getAllEmployeesWithQuota, getUserQuota } from "@/lib/db"
+import { getAllEmployee } from "@/service/employee"
 import { Navbar } from "@/components/layout/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Users, Mail, Calendar, Building } from "lucide-react"
+import { Role } from "@prisma/client"
 
 export default async function EmployeesPage() {
-    const user = await requireRole(['admin', 'superadmin', 'employee'])
-    const employees = await getAllEmployeesWithQuota()
-
+    const user = await requireRole([Role.SUPERADMIN, Role.ADMIN])
+    const employees = await getAllEmployee()
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -44,11 +44,11 @@ export default async function EmployeesPage() {
                                     <div className="space-y-3">
                                         <div className="flex items-center space-x-2 text-sm text-gray-600">
                                             <Mail className="h-4 w-4" />
-                                            <span>{employee.email}</span>
+                                            <span>{employee.personal_email} / {employee.institution_email}</span>
                                         </div>
                                         <div className="flex items-center space-x-2 text-sm text-gray-600">
                                             <Building className="h-4 w-4" />
-                                            <span>{employee.department}</span>
+                                            <span>{employee.institution.name}</span>
                                         </div>
                                         <div className="flex items-center space-x-2 text-sm text-gray-600">
                                             <Calendar className="h-4 w-4" />
@@ -61,11 +61,11 @@ export default async function EmployeesPage() {
                                         <div className="pt-2 border-t">
                                             <div className="flex justify-between text-sm">
                                                 <span>Annual Leave:</span>
-                                                <Badge variant="outline">{employee.annual_leave_days} days</Badge>
+                                                <Badge variant="outline">{employee.approved_leaves.length} days</Badge>
                                             </div>
                                             <div className="flex justify-between text-sm mt-1">
                                                 <span>Sick Leave:</span>
-                                                <Badge variant="outline">{employee.sick_leave_days} days</Badge>
+                                                <Badge variant="outline">{employee.submitted_leaves.length} days</Badge>
                                             </div>
                                         </div>
                                     </div>

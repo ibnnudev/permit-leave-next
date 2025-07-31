@@ -2,10 +2,10 @@ jalanin seeder:
 bunx prisma generate
 bunx ts-node prisma/seed.ts
 
-Login Accounts:
-Superadmin: superadmin@foundation.com / password
-Admin 1 : admin1@foundation.com / password
-Admin 2 : admin2@foundation.com / password
-Teacher 1 : teacher1@foundation.com / password
-Teacher 2 : teacher2@foundation.com / password
-Staff 1 : staff1@foundation.com / password
+📋 Akun Login:
+Superadmin: admin.utama@nurulilmi.sch.id / password123
+Kepala Sekolah: kepsek@nurulilmi.sch.id / password123
+HRD: hrd@nurulilmi.sch.id / password123
+Guru Matematika: ahmad.fauzi@nurulilmi.sch.id / password123
+Guru Bahasa: siti.rahayu@nurulilmi.sch.id / password123
+Staff Admin: rina.wijaya@nurulilmi.sch.id / password123

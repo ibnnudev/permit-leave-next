@@ -33,11 +33,11 @@ export function Navbar({ user }: NavbarProps) {
     const getNavItems = () => {
         if (user.role == Role.SUPERADMIN) {
             return [
-                { href: "/superadmin/dashboard", label: "Dashboard" },
-                { href: "/superadmin/institution", label: "Kelola Lembaga" },
-                { href: "/superadmin/employees", label: "Kelola Pengguna" },
-                { href: "/superadmin/leave-type", label: "Jenis Cuti" },
-                { href: "/superadmin/approval-flow", label: "Alur Persetujuan" },
+                { href: "/admin/superadmin", label: "Dashboard" },
+                { href: "/admin/superadmin/institutions", label: "Kelola Lembaga" },
+                { href: "/admin/superadmin/employees", label: "Kelola Pengguna" },
+                { href: "/admin/superadmin/leave-type", label: "Jenis Cuti" },
+                { href: "/admin/superadmin/approval-flow", label: "Alur Persetujuan" },
             ]
         } else if (user.role == Role.ADMIN) {
             return [

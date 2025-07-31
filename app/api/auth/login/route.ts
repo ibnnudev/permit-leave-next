@@ -18,7 +18,12 @@ export async function POST(request: NextRequest) {
 
         // Ambil user berdasarkan email
         const user = await prisma.employee.findFirst({
-            where: { personal_email: email },
+            where: {
+                OR: [
+                    { personal_email: email },
+                    { institution_email: email }
+                ]
+            },
             include: { institution: true },
         });
 
