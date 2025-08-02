@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireRoleForApi } from "@/lib/auth";
 import { formatApiResponse, handleError } from "@/lib/formatApiRes";
-import { institutionformSchema } from "../route";
+import { institutionformSchema } from "@/lib/validations/institutions";
 import { Role } from "@prisma/client";
 
 export async function DELETE(

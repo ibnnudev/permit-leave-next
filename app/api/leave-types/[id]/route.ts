@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireRoleForApi } from "@/lib/auth";
 import { formatApiResponse, handleError } from "@/lib/formatApiRes";
-import { leaveTypeFormSchema } from "../route";
+import { leaveTypeFormSchema } from "@/lib/validations/leave-types";
 import { parseQueryParams } from "@/lib/parseQueryParams";
 import { Role } from "@prisma/client";
 import { buildApiQuery } from "@/lib/queryBuilder";

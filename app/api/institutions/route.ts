@@ -1,19 +1,13 @@
 // app/api/institutions/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { requireRole, requireRoleForApi } from "@/lib/auth";
 import { parseQueryParams } from "@/lib/parseQueryParams";
 import { buildApiQuery } from "@/lib/queryBuilder";
 import { formatApiResponse, handleError } from "@/lib/formatApiRes";
 import { Role } from "@prisma/client";
-
-export const institutionformSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().min(1),
-  phone: z.string().min(8),
-});
+import { institutionformSchema } from "@/lib/validations/institutions";
 
 export async function GET(req: NextRequest) {
   try {
