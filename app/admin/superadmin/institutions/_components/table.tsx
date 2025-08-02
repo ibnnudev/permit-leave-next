@@ -5,7 +5,7 @@ import { Employee, Institution } from "@prisma/client";
 import { toast } from "sonner";
 import { columns } from "../columns";
 import { CreateForm } from "./create-form";
-import { useQuery } from "@/hook/useQuery";
+import { useMutation } from "@/hooks/useMutation";
 
 interface InstitutionWithEmployees extends Institution {
   employees: Employee[];
@@ -16,7 +16,7 @@ export function InstitutionTableClient({
 }: {
   data: InstitutionWithEmployees[];
 }) {
-  const { mutation: createInstitution } = useQuery(
+  const { mutate: createInstitution } = useMutation(
     "institutions",
     "institutions"
   );
@@ -26,7 +26,7 @@ export function InstitutionTableClient({
     phone: string;
   }) => {
     try {
-      await createInstitution(values);
+      await createInstitution(values as any);
       toast.success("Data lembaga berhasil ditambahkan");
     } catch (err) {
       toast.error("Gagal menambahkan lembaga");

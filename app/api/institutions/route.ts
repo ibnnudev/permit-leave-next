@@ -1,31 +1,53 @@
 // app/api/institutions/route.ts
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireRole, requireRoleForApi } from "@/lib/auth";
+import { parseQueryParams } from "@/lib/parseQueryParams";
+import { buildApiQuery } from "@/lib/queryBuilder";
+import { formatApiResponse, handleError } from "@/lib/formatApiRes";
 
-const formSchema = z.object({
+export const institutionformSchema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
   phone: z.string().min(8),
 });
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    await requireRole(["SUPERADMIN"]);
-    const institutions = await prisma.institution.findMany({
-      include: { employees: true },
+    await requireRoleForApi(req, ["SUPERADMIN"]);
+    const { filter, page, limit, search, order_by, sorted_by, withParams } =
+      parseQueryParams(req.url);
+    const totalItems = await prisma.institution.count();
+    const paginationParams = { page, limit };
+
+    const query = buildApiQuery({
+      filter,
+      search,
+      order_by,
+      sorted_by,
+      pagination: paginationParams,
+      with: withParams,
     });
-    return NextResponse.json(institutions);
+
+    const institutions = await prisma.institution.findMany(query as any);
+    const pagination = {
+      total: totalItems,
+      per_page: limit,
+      current_page: page,
+      last_page: Math.ceil(totalItems / limit),
+    };
+    const response = formatApiResponse(institutions, pagination);
+    return NextResponse.json(response);
   } catch (error) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json(handleError(error), { status: 500 });
   }
 }
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const data = formSchema.parse(body);
+    const data = institutionformSchema.parse(body);
 
     const institution = await prisma.institution.create({
       data: {
@@ -35,12 +57,14 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(institution, { status: 201 });
-  } catch (error) {
-    console.error("Gagal menyimpan data:", error);
-    return NextResponse.json(
-      { error: "Gagal menyimpan data" },
-      { status: 400 }
+    const response = formatApiResponse(
+      institution,
+      undefined,
+      true,
+      "Istitution created successfully"
     );
+    return NextResponse.json(response);
+  } catch (error) {
+    return NextResponse.json(handleError(error), { status: 500 });
   }
 }

@@ -20,7 +20,7 @@ export const columns: ColumnDef<InstitutionWithEmployees>[] = [
         accessorKey: "employeeCount",
         header: "Jumlah Karyawan",
         cell: ({ row }) => {
-            const count = row.original.employees.length;
+            const count = row?.original?.employees?.length;
             return <Badge variant="outline">{count ?? 0} Karyawan</Badge>;
         },
     },

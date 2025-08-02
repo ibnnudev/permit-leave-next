@@ -1,15 +1,15 @@
 "use client";
 import { Navbar } from "@/components/layout/navbar";
 import { Card, CardContent } from "@/components/ui/card";
-import { getAllInstitutions } from "@/service/institution";
 import { Users } from "lucide-react";
 import { InstitutionTableClient } from "./_components/table";
 import { useAuth } from "@/context/auth-context";
-import { useQuery } from "@/hook/useQuery";
+import { useQuery } from "@/hooks/useQuery";
+import { Employee, Institution } from "@prisma/client";
 
 export default function Page() {
   const { user, loading } = useAuth();
-  const { data: institutions } = useQuery("institutions", "institutions");
+  const { data: institutions } = useQuery<PaginationResponse<Institution & { employees: Employee[] }>>("institutions?with=employees", "institutions");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@ export default function Page() {
           </div>
 
           {institutions ? (
-            <InstitutionTableClient data={institutions} />
+            <InstitutionTableClient data={institutions.data.items} />
           ) : (
             <Card>
               <CardContent className="py-8 text-center">

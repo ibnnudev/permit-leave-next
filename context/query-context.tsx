@@ -9,24 +9,27 @@ import React, {
 } from "react";
 
 type QueryMap = Record<string, any>;
+type FetchMap = Record<string, () => Promise<any>>;
 
 type QueryContextType = {
   data: QueryMap;
   runFetch: (key: string, fn: () => Promise<any>) => Promise<void>;
   getData: (key: string) => any;
-  runMutation: (
-    mutationFn: () => Promise<any>,
-    key: string,
-    refetchFn: () => Promise<any>
-  ) => Promise<void>;
+  runMutation: (mutationFn: () => Promise<any>, key: string) => Promise<void>;
 };
 
 const QueryContext = createContext<QueryContextType | undefined>(undefined);
 
 export const QueryProvider = ({ children }: { children: ReactNode }) => {
   const [dataMap, setDataMap] = useState<QueryMap>({});
+  const [fetchMap, setFetchMap] = useState<FetchMap>({});
 
   const runFetch = useCallback(async (key: string, fn: () => Promise<any>) => {
+    setFetchMap((prev) => ({
+      ...prev,
+      [key]: fn,
+    }));
+
     const result = await fn();
     setDataMap((prev) => ({
       ...prev,
@@ -42,19 +45,21 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const runMutation = useCallback(
-    async (
-      mutationFn: () => Promise<any>,
-      key: string,
-      refetchFn: () => Promise<any>
-    ) => {
+    async (mutationFn: () => Promise<any>, key: string) => {
       await mutationFn();
-      const result = await refetchFn();
-      setDataMap((prev) => ({
-        ...prev,
-        [key]: result,
-      }));
+
+      const refetch = fetchMap[key];
+      if (refetch) {
+        const result = await refetch();
+        setDataMap((prev) => ({
+          ...prev,
+          [key]: result,
+        }));
+      } else {
+        console.warn(`No fetch function found for key: ${key}`);
+      }
     },
-    []
+    [fetchMap]
   );
 
   return (
