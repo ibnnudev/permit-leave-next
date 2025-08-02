@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Employee } from "@prisma/client";
+import { Employee, Role } from "@prisma/client";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -93,7 +93,7 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Edit Karyawan</DialogTitle>
                 </DialogHeader>
@@ -133,6 +133,20 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                                             <SelectItem value="Female">Perempuan</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="position"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Jabatan</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} disabled={isPending} />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -256,9 +270,26 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Agama</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={isPending} />
-                                    </FormControl>
+                                    {/* select */}
+                                    <Select
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Agama" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Islam">Islam</SelectItem>
+                                            <SelectItem value="Kristen">Kristen</SelectItem>
+                                            <SelectItem value="Katolik">Katolik</SelectItem>
+                                            <SelectItem value="Hindu">Hindu</SelectItem>
+                                            <SelectItem value="Buddha">Buddha</SelectItem>
+                                            <SelectItem value="Konghucu">Konghucu</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -284,9 +315,25 @@ export function EditModal({ open, onClose, data }: EditModalProps) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Peran</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={isPending} />
-                                    </FormControl>
+                                    {/* select */}
+                                    <Select
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Peran" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.values(Role).filter((role) => role !== Role.SUPERADMIN).map((role) => (
+                                                <SelectItem key={role} value={role}>
+                                                    {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}

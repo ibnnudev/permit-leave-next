@@ -7,11 +7,7 @@ import { columns } from "../columns"
 import { CreateForm } from "./create-form"
 
 export function TableClient({ data }: { data: Employee[] }) {
-    const handleSubmit = async (values: {
-        name: string
-        address: string
-        phone: string
-    }) => {
+    const handleSubmit = async (values: any) => {
         try {
             const res = await fetch("/api/institutions", {
                 method: "POST",
