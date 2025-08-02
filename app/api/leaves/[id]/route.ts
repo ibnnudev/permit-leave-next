@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireRoleForApi } from "@/lib/auth";
 import { formatApiResponse, handleError } from "@/lib/formatApiRes";
-import { leaveformSchema } from "../../leaves/route";
+import { leaveformSchema } from "../route";
 import { parseQueryParams } from "@/lib/parseQueryParams";
 import { Role } from "@prisma/client";
 import { buildApiQuery } from "@/lib/queryBuilder";
@@ -36,7 +36,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireRoleForApi(req, ["SUPERADMIN"]);
+    await requireRoleForApi(req, [Role.SUPERADMIN]);
     const leave = await prisma.leave.delete({
       where: { id: Number(params.id) },
     });

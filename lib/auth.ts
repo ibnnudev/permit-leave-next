@@ -114,7 +114,7 @@ export async function requireRoleForApi(
   const userPayload = await decrypt(token);
   const role = userPayload?.user?.role;
   if (!role || !allowedRoles.includes(role)) {
-    throw new Error("Unauthorized");
+    throw new Error("You are not authorized");
   }
 
   return userPayload;

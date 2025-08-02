@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(handleError(error), { status: 500 });
   }
 }
+
 export async function POST(req: NextRequest) {
   try {
     await requireRoleForApi(req, [Role.SUPERADMIN, Role.ADMIN, Role.EMPLOYEE]);
