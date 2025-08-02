@@ -14,6 +14,8 @@ export function parseQueryParams(reqUrl: string) {
 
   const withParams = searchParams.get("with") || undefined;
 
+  const pagination = searchParams.get("pagination") !== "false";
+
   return {
     page,
     limit,
@@ -22,5 +24,6 @@ export function parseQueryParams(reqUrl: string) {
     order_by,
     sorted_by,
     withParams,
+    pagination,
   };
 }

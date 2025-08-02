@@ -1,19 +1,22 @@
+"use client"
+
 import { Navbar } from "@/components/layout/navbar"
 import { Card, CardContent } from "@/components/ui/card"
-import { requireRole } from "@/lib/auth"
-import { getAllEmployee } from "@/service/employee"
-import { Role } from "@prisma/client"
+import { Employee } from "@prisma/client"
 import { Users } from "lucide-react"
 import { TableClient } from "./_components/table"
+import { useAuth } from "@/context/auth-context"
+import { useQuery } from "@/hooks/useQuery"
 
-export default async function Page() {
-    const user = await requireRole([Role.SUPERADMIN])
-    const employees = await getAllEmployee()
-
+export default function Page() {
+    const { user, loading } = useAuth();
+    const { data: employees } = useQuery<PaginationResponse<Employee>>("employees?with=institution", "employees");
+    if (loading) {
+        return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    }
     return (
         <div className="min-h-screen bg-gray-50">
-            <Navbar user={user} />
-
+            <Navbar user={user as any} />
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 py-6 sm:px-0">
                     <div className="mb-4">
@@ -21,8 +24,8 @@ export default async function Page() {
                         <p className="text-gray-600">Lihat & kelola semua karyawan yang terdaftar</p>
                     </div>
 
-                    {employees.length > 0 ? (
-                        <TableClient data={employees} />
+                    {employees ? (
+                        <TableClient data={employees?.data?.items} />
                     ) : (
                         <Card>
                             <CardContent className="py-8 text-center">

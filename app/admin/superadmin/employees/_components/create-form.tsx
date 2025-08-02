@@ -15,6 +15,7 @@ import {
     FormLabel,
     FormControl,
     FormMessage,
+    FormDescription,
 } from "@/components/ui/form"
 import {
     Select,
@@ -23,40 +24,26 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select"
+import { Institution, Role } from "@prisma/client"
+import { employeeFormSchema } from "@/lib/validations/employees"
+import { useQuery } from "@/hooks/useQuery"
 
-const formSchema = z.object({
-    name: z.string().min(1, { message: "Nama wajib diisi" }),
-    gender: z.string().min(1, { message: "Jenis kelamin wajib diisi" }),
-    position: z.string().min(1, { message: "Jabatan wajib diisi" }),
-    whatsapp_number: z.string().min(1, { message: "Nomor WhatsApp wajib diisi" }),
-    address: z.string().min(1, { message: "Alamat wajib diisi" }),
-    birth_place: z.string().min(1, { message: "Tempat lahir wajib diisi" }),
-    birth_date: z.string().min(1, { message: "Tanggal lahir wajib diisi" }).refine((val) => !isNaN(Date.parse(val)), {
-        message: "Tanggal lahir tidak valid",
-    }),
-    marital_status: z.string().min(1, { message: "Status pernikahan wajib diisi" }),
-    employment_status: z.string().min(1, { message: "Status kepegawaian wajib diisi" }),
-    personal_email: z.string().email({ message: "Email tidak valid" }),
-    institution_email: z.string().email({ message: "Email tidak valid" }),
-    religion: z.string().min(1, { message: "Agama wajib diisi" }),
-    last_education: z.string().min(1, { message: "Pendidikan terakhir wajib diisi" }),
-    role: z.string().min(1, { message: "Peran wajib diisi" }),
-})
-
-type CreateFormValues = z.infer<typeof formSchema>
+type CreateFormValues = z.infer<typeof employeeFormSchema>
 
 interface CreateFormProps {
-    onSubmit?: (values: CreateFormValues) => Promise<void> | void
     onClose?: () => void
 }
 
-export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
+export function CreateForm({ onClose }: CreateFormProps) {
+    // const { institution } = useQuery<Institution>("institutions?with=pagination=false", "");
+
     const [isPending, startTransition] = useTransition()
 
     const form = useForm<CreateFormValues>({
-        resolver: zodResolver(formSchema),
+        resolver: zodResolver(employeeFormSchema),
         defaultValues: {
             name: "",
+            institution_id: 0,
             gender: "",
             position: "",
             whatsapp_number: "",
@@ -69,29 +56,59 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
             institution_email: "",
             religion: "",
             last_education: "",
-            role: "",
+            role: Role.EMPLOYEE,
         },
     })
 
     const handleSubmit = (values: CreateFormValues) => {
         startTransition(async () => {
             try {
-                if (onSubmit) await onSubmit(values)
-                toast.success("Data karyawan berhasil disimpan")
+                const res = await fetch("/api/employees", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(values),
+                })
+
+                console.log("Response status:", res.status);
+
+                if (!res.ok) throw new Error("Gagal menyimpan data")
+                toast.success("Data karyawan berhasil ditambahkan")
                 form.reset()
                 onClose?.()
-            } catch (error) {
-                console.error(error)
-                toast.error("Gagal menyimpan data", {
-                    description: error instanceof Error ? error.message : String(error),
-                })
+            } catch (err) {
+                toast.error("Gagal menambahkan karyawan")
+                console.error("Error adding employee:", err)
             }
         })
     }
 
+    console.log(form.formState.errors)
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                {/* <FormField
+                    control={form.control}
+                    name="instition_id"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Jenis Kelamin</FormLabel>
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Jenis Kelamin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Male">Laki-laki</SelectItem>
+                                    <SelectItem value="Female">Perempuan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                /> */}
 
                 <FormField
                     control={form.control}
@@ -118,11 +135,9 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
                             >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih Jenis Kelamin" />
-                                    </SelectTrigger>
-                                </FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Jenis Kelamin" />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Male">Laki-laki</SelectItem>
                                     <SelectItem value="Female">Perempuan</SelectItem>
@@ -209,9 +224,23 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Status Pernikahan</FormLabel>
-                            <FormControl>
-                                <Input {...field} disabled={isPending} />
-                            </FormControl>
+
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih Status Pernikahan" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Single">Belum Menikah</SelectItem>
+                                    <SelectItem value="Married">Menikah</SelectItem>
+                                    <SelectItem value="Divorced">Cerai</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -223,9 +252,21 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Status Kepegawaian</FormLabel>
-                            <FormControl>
-                                <Input {...field} disabled={isPending} />
-                            </FormControl>
+                            {/* pns, kontrak, honorer */}
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Status Kepegawaian" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PNS">PNS</SelectItem>
+                                    <SelectItem value="Kontrak">Kontrak</SelectItem>
+                                    <SelectItem value="Honorer">Honorer</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -254,6 +295,9 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                             <FormControl>
                                 <Input type="email" {...field} disabled={isPending} />
                             </FormControl>
+                            <FormDescription>
+                                Contoh: karyawan@nchmerdeka.com
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -265,9 +309,25 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Agama</FormLabel>
-                            <FormControl>
-                                <Input {...field} disabled={isPending} />
-                            </FormControl>
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih Agama" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Islam">Islam</SelectItem>
+                                    <SelectItem value="Kristen">Kristen</SelectItem>
+                                    <SelectItem value="Katolik">Katolik</SelectItem>
+                                    <SelectItem value="Hindu">Hindu</SelectItem>
+                                    <SelectItem value="Buddha">Buddha</SelectItem>
+                                    <SelectItem value="Konghucu">Konghucu</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -279,9 +339,24 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Pendidikan Terakhir</FormLabel>
-                            <FormControl>
-                                <Input {...field} disabled={isPending} />
-                            </FormControl>
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Pendidikan Terakhir" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SD">SD</SelectItem>
+                                    <SelectItem value="SMP">SMP</SelectItem>
+                                    <SelectItem value="SMA">SMA</SelectItem>
+                                    <SelectItem value="D3">D3</SelectItem>
+                                    <SelectItem value="S1">S1</SelectItem>
+                                    <SelectItem value="S2">S2</SelectItem>
+                                    <SelectItem value="S3">S3</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -293,9 +368,20 @@ export function CreateForm({ onSubmit, onClose }: CreateFormProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Peran</FormLabel>
-                            <FormControl>
-                                <Input {...field} disabled={isPending} />
-                            </FormControl>
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Peran" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={Role.EMPLOYEE}>Karyawan</SelectItem>
+                                    <SelectItem value={Role.ADMIN}>Admin</SelectItem>
+                                    {/* <SelectItem value={Role.SUPERADMIN}>Superadmin</SelectItem> */}
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}

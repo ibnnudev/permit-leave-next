@@ -9,62 +9,81 @@ import { buildApiQuery } from "@/lib/queryBuilder";
 import { formatApiResponse, handleError } from "@/lib/formatApiRes";
 
 export const institutionformSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().min(1),
-  phone: z.string().min(8),
+    name: z.string().min(1),
+    address: z.string().min(1),
+    phone: z.string().min(8),
 });
 
 export async function GET(req: NextRequest) {
-  try {
-    await requireRoleForApi(req, ["SUPERADMIN"]);
-    const { filter, page, limit, search, order_by, sorted_by, withParams } =
-      parseQueryParams(req.url);
-    const totalItems = await prisma.institution.count();
-    const paginationParams = { page, limit };
+    try {
+        await requireRoleForApi(req, ["SUPERADMIN"]);
+        const { filter, page, limit, search, order_by, sorted_by, withParams, pagination = true } =
+            parseQueryParams(req.url);
 
-    const query = buildApiQuery({
-      filter,
-      search,
-      order_by,
-      sorted_by,
-      pagination: paginationParams,
-      with: withParams,
-    });
+        let institutions;
+        let paginationData;
 
-    const institutions = await prisma.institution.findMany(query as any);
-    const pagination = {
-      total: totalItems,
-      per_page: limit,
-      current_page: page,
-      last_page: Math.ceil(totalItems / limit),
-    };
-    const response = formatApiResponse(institutions, pagination);
-    return NextResponse.json(response);
-  } catch (error) {
-    return NextResponse.json(handleError(error), { status: 500 });
-  }
+        if (pagination !== false) {
+            const totalItems = await prisma.institution.count();
+            const paginationParams = { page, limit };
+
+            const query = buildApiQuery({
+                filter,
+                search,
+                order_by,
+                sorted_by,
+                pagination: paginationParams,
+                with: withParams,
+            });
+
+            institutions = await prisma.institution.findMany(query as any);
+            paginationData = {
+                total: totalItems,
+                per_page: limit,
+                current_page: page,
+                last_page: Math.ceil(totalItems / limit),
+            };
+        } else {
+            const query = buildApiQuery({
+                filter,
+                search,
+                order_by,
+                sorted_by,
+                with: withParams,
+            });
+
+            institutions = await prisma.institution.findMany(query as any);
+            paginationData = undefined;
+        }
+
+        const response = formatApiResponse(institutions, paginationData);
+        return NextResponse.json(response);
+    } catch (error) {
+        return NextResponse.json(handleError(error), { status: 500 });
+    }
 }
+
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const data = institutionformSchema.parse(body);
+    try {
+        const body = await req.json();
+        const data = institutionformSchema.parse(body);
 
-    const institution = await prisma.institution.create({
-      data: {
-        name: data.name,
-        address: data.address,
-        phone: data.phone,
-      },
-    });
+        const institution = await prisma.institution.create({
+            data: {
+                name: data.name,
+                address: data.address,
+                phone: data.phone,
+            },
+        });
 
-    const response = formatApiResponse(
-      institution,
-      undefined,
-      true,
-      "Istitution created successfully"
-    );
-    return NextResponse.json(response);
-  } catch (error) {
-    return NextResponse.json(handleError(error), { status: 500 });
-  }
+        const response = formatApiResponse(
+            institution,
+            undefined,
+            true,
+            "Istitution created successfully"
+        );
+        return NextResponse.json(response);
+    } catch (error) {
+        return NextResponse.json(handleError(error), { status: 500 });
+    }
 }

@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     try {
         const { email, password } = await request.json();
 
+
         if (!email || !password) {
             return NextResponse.json(
                 { error: "Email dan password wajib diisi." },
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
         // Cek password
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
+            console.error("Invalid password for user:", user.id);
             return NextResponse.json(
                 { error: "Email atau password salah." },
                 { status: 401 }

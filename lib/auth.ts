@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import prisma from "./prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 const secretKey = process.env.JWT_SECRET || "fallback-secret-key";
 const key = new TextEncoder().encode(secretKey);
