@@ -38,7 +38,7 @@
     "@radix-ui/react-toast": "latest",
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
-    "@radix-ui/react-tooltip": "latest",
+    "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-table": "^8.21.3",
     "bcryptjs": "latest",
     "class-variance-authority": "^0.7.1",
