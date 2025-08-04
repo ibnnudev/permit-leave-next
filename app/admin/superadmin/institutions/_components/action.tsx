@@ -13,6 +13,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import Link from "next/link";
 
 export function InstitutionActions({ institution }: { institution: Institution }) {
     const [openEdit, setOpenEdit] = useState(false);
@@ -37,9 +38,11 @@ export function InstitutionActions({ institution }: { institution: Institution }
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="mr-2 rounded-full">
-                            <Users className="h-4 w-4" />
-                        </Button>
+                        <Link href={`/admin/superadmin/institutions/${institution.id}/employees`}>
+                            <Button variant="outline" size="icon" className="mr-2 rounded-full">
+                                <Users className="h-4 w-4" />
+                            </Button>
+                        </Link>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Manage Karyawan</p>
