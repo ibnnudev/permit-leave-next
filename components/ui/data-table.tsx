@@ -169,11 +169,7 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {/* {table.getFilteredSelectedRowModel().rows.length} dari{" "}
-                    {table.getFilteredRowModel().rows.length} baris terpilih. */}
-                </div>
-                <div className="space-x-2">
+                <div className="space-x-2 flex items-center">
                     <Button
                         variant="outline"
                         size="sm"
@@ -182,6 +178,70 @@ export function DataTable<TData, TValue>({
                     >
                         Sebelumnya
                     </Button>
+                    {pagination && (
+                        <>
+                            {pagination.last_page > 1 && (() => {
+                                const pages = [];
+                                const { current_page, last_page } = pagination;
+                                const maxPagesToShow = 5;
+                                let start = Math.max(1, current_page - 2);
+                                let end = Math.min(last_page, current_page + 2);
+
+                                if (current_page <= 3) {
+                                    end = Math.min(last_page, maxPagesToShow);
+                                } else if (current_page >= last_page - 2) {
+                                    start = Math.max(1, last_page - maxPagesToShow + 1);
+                                }
+
+                                if (start > 1) {
+                                    pages.push(
+                                        <Button
+                                            key={1}
+                                            variant={current_page === 1 ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => onPageChange?.(1)}
+                                        >
+                                            1
+                                        </Button>
+                                    );
+                                    if (start > 2) {
+                                        pages.push(<span key="start-ellipsis">...</span>);
+                                    }
+                                }
+
+                                for (let i = start; i <= end; i++) {
+                                    pages.push(
+                                        <Button
+                                            key={i}
+                                            variant={current_page === i ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => onPageChange?.(i)}
+                                        >
+                                            {i}
+                                        </Button>
+                                    );
+                                }
+
+                                if (end < last_page) {
+                                    if (end < last_page - 1) {
+                                        pages.push(<span key="end-ellipsis">...</span>);
+                                    }
+                                    pages.push(
+                                        <Button
+                                            key={last_page}
+                                            variant={current_page === last_page ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => onPageChange?.(last_page)}
+                                        >
+                                            {last_page}
+                                        </Button>
+                                    );
+                                }
+
+                                return pages;
+                            })()}
+                        </>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"
