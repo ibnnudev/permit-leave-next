@@ -7,10 +7,15 @@ import { Users } from "lucide-react"
 import { TableClient } from "./_components/table"
 import { useAuth } from "@/context/auth-context"
 import { useQuery } from "@/hooks/useQuery"
+import { useState } from "react"
 
 export default function Page() {
     const { user, loading } = useAuth();
-    const { data: employees } = useQuery<PaginationResponse<Employee>>("employees?with=institution", "employees");
+    const [page, setPage] = useState(1);
+    const { data: employees } = useQuery<PaginationResponse<Employee>>(
+        `employees?with=institution&page=${page}`,
+        "employees"
+    );
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Loading...</div>;
     }
@@ -25,7 +30,11 @@ export default function Page() {
                     </div>
 
                     {employees ? (
-                        <TableClient data={employees?.data?.items} />
+                        <TableClient
+                            data={employees?.data?.items}
+                            pagination={employees?.data?.pagination}
+                            onPageChange={setPage}
+                        />
                     ) : (
                         <Card>
                             <CardContent className="py-8 text-center">

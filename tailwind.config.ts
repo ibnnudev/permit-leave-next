@@ -92,7 +92,7 @@ const config: Config = {
                 'accordion-up': 'accordion-up 0.2s ease-out'
             },
             fontFamily: {
-                helvetica: ["Helvetica", "sans-serif"],
+                sans: ['"SF Pro Display"', 'sans-serif'],
             },
         }
     },

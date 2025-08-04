@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -31,13 +31,21 @@ import { useQuery } from "@/hooks/useQuery"
 type CreateFormValues = z.infer<typeof employeeFormSchema>
 
 interface CreateFormProps {
+    onSuccess?: () => void
     onClose?: () => void
 }
 
-export function CreateForm({ onClose }: CreateFormProps) {
-    // const { institution } = useQuery<Institution>("institutions?with=pagination=false", "");
+interface InstitutionResponse {
+    data: {
+        items: Institution[]
+    }
+}
 
+export function CreateForm({ onClose, onSuccess }: CreateFormProps) {
+    const { data } = useQuery<InstitutionResponse>("institutions", "institutions");
+    const institutions = data?.data?.items ?? [];
     const [isPending, startTransition] = useTransition()
+
 
     const form = useForm<CreateFormValues>({
         resolver: zodResolver(employeeFormSchema),
@@ -75,40 +83,42 @@ export function CreateForm({ onClose }: CreateFormProps) {
                 toast.success("Data karyawan berhasil ditambahkan")
                 form.reset()
                 onClose?.()
+                onSuccess?.()
             } catch (err) {
                 toast.error("Gagal menambahkan karyawan")
                 console.error("Error adding employee:", err)
             }
         })
     }
-
     console.log(form.formState.errors)
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                {/* <FormField
+                <FormField
                     control={form.control}
-                    name="instition_id"
+                    name="institution_id"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Jenis Kelamin</FormLabel>
+                            <FormLabel>Pilih Lembaga</FormLabel>
                             <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
+                                value={field.value?.toString() || ""}
+                                onValueChange={(value) => field.onChange(Number(value))}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Jenis Kelamin" />
+                                    <SelectValue placeholder="Pilih Lembaga" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Male">Laki-laki</SelectItem>
-                                    <SelectItem value="Female">Perempuan</SelectItem>
+                                    {institutions.map((institution) => (
+                                        <SelectItem key={institution.id} value={institution.id.toString()}>
+                                            {institution.name}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
                         </FormItem>
                     )}
-                /> */}
+                />
 
                 <FormField
                     control={form.control}

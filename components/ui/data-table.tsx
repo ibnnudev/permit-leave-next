@@ -37,6 +37,13 @@ import {
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    pagination?: {
+        total: number;
+        per_page: number;
+        current_page: number;
+        last_page: number;
+    };
+    onPageChange?: (page: number) => void;
     filterColumn?: string;
     addButtonText?: string;
     formContent?: React.ReactNode;
@@ -45,6 +52,8 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
     columns,
     data,
+    pagination,
+    onPageChange,
     filterColumn,
     addButtonText = "Tambah",
     formContent,
@@ -168,16 +177,16 @@ export function DataTable<TData, TValue>({
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => onPageChange?.(pagination!.current_page - 1)}
+                        disabled={pagination?.current_page === 1}
                     >
                         Sebelumnya
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
+                        onClick={() => onPageChange?.(pagination!.current_page + 1)}
+                        disabled={pagination?.current_page === pagination?.last_page}
                     >
                         Berikutnya
                     </Button>

@@ -10,80 +10,80 @@ import { Role } from "@prisma/client";
 import { institutionformSchema } from "@/lib/validations/institutions";
 
 export async function GET(req: NextRequest) {
-  try {
-    await requireRoleForApi(req, ["SUPERADMIN"]);
-    const {
-      filter,
-      page,
-      limit,
-      search,
-      order_by,
-      sorted_by,
-      withParams,
-      pagination = true,
-    } = parseQueryParams(req.url);
+    try {
+        await requireRoleForApi(req, ["SUPERADMIN"]);
+        const {
+            filter,
+            page,
+            limit,
+            search,
+            order_by,
+            sorted_by,
+            withParams,
+            pagination = true,
+        } = parseQueryParams(req.url);
 
-    let institutions;
-    let paginationData;
+        let institutions;
+        let paginationData;
 
-    if (pagination !== false) {
-      const totalItems = await prisma.institution.count();
-      const paginationParams = { page, limit };
+        if (pagination !== false) {
+            const totalItems = await prisma.institution.count();
+            const paginationParams = { page, limit };
 
-      const query = buildApiQuery({
-        filter,
-        search,
-        order_by,
-        sorted_by,
-        pagination: paginationParams,
-        with: withParams,
-      });
+            const query = buildApiQuery({
+                filter,
+                search,
+                order_by,
+                sorted_by,
+                pagination: paginationParams,
+                with: withParams,
+            });
 
-      institutions = await prisma.institution.findMany(query as any);
-      paginationData = {
-        total: totalItems,
-        per_page: limit,
-        current_page: page,
-        last_page: Math.ceil(totalItems / limit),
-      };
-    } else {
-      const query = buildApiQuery({
-        filter,
-        search,
-        order_by,
-        sorted_by,
-        with: withParams,
-      });
+            institutions = await prisma.institution.findMany(query as any);
+            paginationData = {
+                total: totalItems,
+                per_page: limit,
+                current_page: page,
+                last_page: Math.ceil(totalItems / limit),
+            };
+        } else {
+            const query = buildApiQuery({
+                filter,
+                search,
+                order_by,
+                sorted_by,
+                with: withParams,
+            });
 
-      institutions = await prisma.institution.findMany(query as any);
-      paginationData = undefined;
+            institutions = await prisma.institution.findMany(query as any);
+            paginationData = undefined;
+        }
+
+        const response = formatApiResponse(institutions, paginationData);
+        return NextResponse.json(response);
+    } catch (error) {
+        return NextResponse.json(handleError(error), { status: 500 });
     }
-
-    const response = formatApiResponse(institutions, paginationData);
-    return NextResponse.json(response);
-  } catch (error) {
-    return NextResponse.json(handleError(error), { status: 500 });
-  }
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    await requireRoleForApi(req, [Role.SUPERADMIN]);
-    const body = await req.json();
-    const validatedData = institutionformSchema.parse(body);
+    try {
+        await requireRoleForApi(req, [Role.SUPERADMIN]);
+        const body = await req.json();
+        const validatedData = institutionformSchema.parse(body);
 
-    const institution = await prisma.institution.create({
-      data: validatedData,
-    });
+        const institution = await prisma.institution.create({
+            data: validatedData,
+        });
 
-    const response = formatApiResponse(
-      institution,
-      undefined,
-      true,
-      "Istitution created successfully"
-    );
-    return NextResponse.json(response);
-  } catch (error) {
-    return NextResponse.json(handleError(error), { status: 500 });
-  }
+        const response = formatApiResponse(
+            institution,
+            undefined,
+            true,
+            "Istitution created successfully"
+        );
+        return NextResponse.json(response);
+    } catch (error) {
+        return NextResponse.json(handleError(error), { status: 500 });
+    }
 }
